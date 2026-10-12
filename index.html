@@ -19,27 +19,44 @@
     .pb-safe {
       padding-bottom: env(safe-area-inset-bottom);
     }
-    ::-webkit-scrollbar {
-      width: 0px;
-      background: transparent;
-    }
+    /* スクロールバーを隠さず、操作できる状態を保つ */
+    :root { color-scheme: light; }
+    html { scroll-behavior: smooth; }
+    body { -webkit-tap-highlight-color: transparent; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #0d9488; outline-offset: 2px; }
+    .calendar-board { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:2px solid #64748b; border-radius:12px; overflow:hidden; background:#94a3b8; gap:1px; }
+    .calendar-weekday { text-align:center; padding:9px 0; font-size:12px; font-weight:900; background:#e2e8f0; color:#334155; }
+    .calendar-day { min-height:51px; background:#fff; color:#0f172a; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:5px; font-weight:800; font-size:15px; border:2px solid transparent; cursor:pointer; }
+    .calendar-day.is-today { background:#ccfbf1; border-color:#0f766e; }
+    .calendar-day.is-selected { background:#115e59; color:#fff; border-color:#042f2e; }
+    .calendar-day.is-complete:not(.is-selected) { background:#ecfdf5; }
+    .calendar-day:focus-visible { outline:3px solid #0284c7; outline-offset:-3px; }
+    .calendar-dot { height:7px; width:7px; border-radius:50%; display:inline-block; }
+    .calendar-blank { background:#f1f5f9; min-height:51px; }
+    .section-heading { font-size:16px; font-weight:900; color:#0f172a; }
+    @media(min-width:640px) { .calendar-day,.calendar-blank { min-height:66px; } }
+    @media(max-width:370px) { .calendar-day,.calendar-blank { min-height:45px; } .calendar-day { font-size:13px; } }
   </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 pb-28 pt-20 select-none">
 
   <!-- ヘッダー -->
   <header class="bg-gradient-to-r from-teal-700 via-teal-800 to-emerald-800 text-white p-4 shadow-lg fixed top-0 left-0 w-full z-30 flex items-center justify-between border-b-4 border-teal-900 px-4">
-    <div class="flex items-center">
-      <i data-lucide="calendar-check-2" class="mr-2.5 h-7 w-7 text-yellow-300 drop-shadow-md"></i>
-      <h1 class="text-lg md:text-xl font-black tracking-wide">毎日のサプリ＆おくすり管理</h1>
+    <div class="flex items-center min-w-0">
+      <i data-lucide="calendar-check-2" class="mr-2 h-6 w-6 sm:h-7 sm:w-7 shrink-0 text-yellow-300 drop-shadow-md"></i>
+      <h1 class="text-sm sm:text-lg md:text-xl font-black tracking-wide leading-tight">毎日のサプリ＆おくすり管理</h1>
     </div>
-    <div onclick="goToToday()" class="bg-teal-900/70 hover:bg-teal-950 px-3 py-1 rounded-lg text-xs font-black cursor-pointer border border-teal-600 transition">
-      今日へ
+    <div class="flex items-center gap-2 shrink-0">
+      <button type="button" onclick="goToToday()" aria-label="今日の記録へ" class="bg-teal-900/70 hover:bg-teal-950 px-2 sm:px-3 py-2 rounded-lg text-xs font-black cursor-pointer border border-teal-500 transition">今日へ</button>
+      <button type="button" onclick="switchTab('settings'); window.scrollTo(0,0)" aria-label="設定画面を開く" title="GAS URL・接続設定" class="flex items-center justify-center w-10 h-10 bg-white/15 hover:bg-white/25 rounded-xl border-2 border-teal-300 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-300">
+        <i data-lucide="settings" class="w-6 h-6"></i>
+      </button>
     </div>
   </header>
 
   <!-- メインコンテンツ領域 -->
-  <main class="max-w-3xl mx-auto p-4" id="main-content"></main>
+  <main class="max-w-3xl mx-auto px-3 sm:px-5 py-4" id="main-content"></main>
 
   <!-- トースト通知 -->
   <div id="toast" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 border-2 border-teal-400 font-black animate-fade-in-down whitespace-nowrap text-sm flex items-center gap-2">
@@ -51,23 +68,23 @@
   <nav class="fixed bottom-0 w-full bg-white border-t-2 border-slate-400 flex justify-around p-2 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.06)] pb-safe">
     <button onclick="switchTab('log')" id="nav-log" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="calendar-days" class="w-6 h-6 mb-1"></i>
-      <span class="text-[10px] font-black uppercase tracking-tighter">記録</span>
+      <span class="text-[11px] font-black tracking-tight">記録</span>
     </button>
     <button onclick="switchTab('manage')" id="nav-manage" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="pill" class="w-6 h-6 mb-1"></i>
-      <span class="text-[10px] font-black uppercase tracking-tighter">サプリ管理</span>
+      <span class="text-[11px] font-black tracking-tight">サプリ管理</span>
     </button>
     <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="clipboard-list" class="w-6 h-6 mb-1"></i>
-      <span class="text-[10px] font-black uppercase tracking-tighter">既往歴</span>
+      <span class="text-[11px] font-black tracking-tight">既往歴</span>
     </button>
     <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="bot-message-square" class="w-6 h-6 mb-1"></i>
-      <span class="text-[10px] font-black uppercase tracking-tighter">AI相談・分析</span>
+      <span class="text-[11px] font-black tracking-tight">AI相談・分析</span>
     </button>
     <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="settings-2" class="w-6 h-6 mb-1"></i>
-      <span class="text-[10px] font-black uppercase tracking-tighter">設定</span>
+      <span class="text-[11px] font-black tracking-tight">設定</span>
     </button>
   </nav>
 
@@ -167,6 +184,10 @@
       newSuppImage: null,
       isAnalyzing: false,
       aiLoading: false,
+      aiError: '',
+      photoError: '',
+      connectionResult: '',
+      checkingConnection: false,
       aiReport: '',
       aiChatHistory: [],
       aiQuestion: '',
@@ -205,8 +226,8 @@
 
     function changeMonth(delta) {
       const d = new Date(state.calendarDate);
-      d.setMonth(d.getMonth() + delta);
-      state.calendarDate = d;
+      // 31日から月移動しても翌々月へ飛ばないようにする
+      state.calendarDate = new Date(d.getFullYear(), d.getMonth() + delta, 1);
       render();
     }
 
@@ -297,11 +318,76 @@
       }
     }
 
+    function safeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function normalizeGasUrl(raw) {
+      let url = (raw || '').trim();
+      if (/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/edit/.test(url)) url = url.replace(/\/edit.*$/, '/exec');
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/[^\s/?]+\/exec(?:\?.*)?$/.test(url)) {
+        throw new Error('GAS_URL: GASのWebアプリURLが正しくありません。デプロイ画面の「ウェブアプリ」URL（/execで終わるURL）を設定してください。');
+      }
+      return url;
+    }
+
+    function explainError(error) {
+      const msg = error?.message || String(error);
+      if (/Failed to fetch|NetworkError|Load failed|fetch failed|CORS/i.test(msg))
+        return 'NETWORK: GASへの通信に失敗しました。GASをWebアプリとしてデプロイし、アクセスできるユーザーの設定と/execのURLを確認してください。ブラウザの接続制限でも発生します。詳細: ' + msg;
+      return msg;
+    }
+
+    async function gasRequest(payload) {
+      const url = normalizeGasUrl(state.gasUrl);
+      let response;
+      try {
+        response = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
+      } catch(error) { throw new Error(explainError(error)); }
+      const raw = await response.text();
+      if (!response.ok) throw new Error('HTTP_' + response.status + ': GAS応答エラー。アクセス権限・デプロイ設定を確認してください。');
+      let result;
+      try {result = JSON.parse(raw);} catch(e) {
+        throw new Error('GAS_RESPONSE: GASからJSON以外の応答が届きました。ログイン画面・権限エラー・古いデプロイの可能性があります。応答冒頭: ' + raw.replace(/<[^>]*>/g,' ').slice(0,180));
+      }
+      if (result.status === 'error' || result.error) {
+        const problem = result.message || result.error?.message || '不明なAPIエラー';
+        throw new Error((result.code || 'GEMINI_ERROR') + ': ' + problem);
+      }
+      return result;
+    }
+
+    function errorPanel(message, heading='AI通信エラー') {
+      if (!message) return '';
+      return `<div role="alert" class="mt-3 bg-red-50 border-2 border-red-600 text-red-950 p-4 rounded-xl shadow-sm">
+        <p class="text-base font-black mb-2">⚠ ${safeHtml(heading)}</p>
+        <p class="text-sm font-semibold leading-relaxed whitespace-pre-wrap break-words select-text">${safeHtml(message)}</p>
+        <p class="text-xs font-bold mt-2">※ APIキーやパスワードを共有しないでください。</p>
+      </div>`;
+    }
+
+    async function checkGasConnection() {
+      state.checkingConnection = true;
+      state.connectionResult = '';
+      render();
+      try {
+        const url = normalizeGasUrl(state.gasUrl);
+        const response = await fetch(url, {method:'GET'});
+        const body = await response.text();
+        if (!response.ok) throw new Error('HTTP_' + response.status + ': Webアプリへのアクセスが拒否されました。');
+        if (!body.includes('毎日のサプリ管理GASサーバーは正常に稼働しています')) {
+          throw new Error('GAS_RESPONSE: 想定したGASの応答ではありません。ウェブアプリのデプロイ先やアクセス権限を確認してください。');
+        }
+        state.connectionResult = '接続OK：GASの公開URLへアクセスできました。ただしGemini APIへの接続は別途確認が必要です。';
+      } catch(e) {state.connectionResult = explainError(e);}
+      finally {state.checkingConnection = false; render();}
+    }
+
     async function handleAnalyzeImage() {
-      if (!state.gasUrl) return showToast('設定からGAS URLを設定してください');
+      if (!state.gasUrl) { state.photoError='GAS_URL: 設定画面でGAS WebアプリURLを登録してください。'; render(); return; }
       if (!state.newSuppImage) return showToast('写真を選択してください');
       
-      let targetUrl = state.gasUrl.trim().replace(/\/edit.*$/, '/exec');
+      state.photoError = '';
       state.isAnalyzing = true;
       render();
 
@@ -309,23 +395,17 @@
         const match = state.newSuppImage.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
         if (!match) throw new Error('画像フォーマット不正');
         
-        const response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'gemini',
-            model: 'gemini-3-flash-preview', // 指定されたモデルへ変更
+        const result = await gasRequest({
+            action: 'gemini', model: 'gemini-3.6-flash',
             payload: {
-              contents: [{ role: "user", parts: [{ text: "このサプリ・薬のパッケージ画像から「製品名(name)」「1日の合計推奨量(recommendedDosage)」「朝(morning), 昼(afternoon), 夕/夜(evening)ごとの目安粒数」を抽出し、JSON形式で返答してください。単位はすべて整数です。" }, { inlineData: { mimeType: match[1], data: match[2] } }] }],
-              generationConfig: { responseMimeType: "application/json" }
+              contents: [{role:'user', parts:[
+                {text:'このサプリ・薬のパッケージ画像から「製品名(name)」「1日の合計推奨量(recommendedDosage)」「朝(morning), 昼(afternoon), 夕/夜(evening)ごとの目安粒数」を抽出し、JSON形式で返答してください。単位はすべて整数です。読み取れない内容は推測せず空にしてください。'},
+                {inlineData:{mimeType:match[1], data:match[2]}}
+              ]}], generationConfig:{responseMimeType:'application/json'}
             }
-          })
         });
-
-        const result = await response.json();
-        if (result.status === 'error') throw new Error(result.message);
-        
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('EMPTY_RESPONSE: Geminiから解析結果が返りませんでした。画像内容・API応答を確認してください。');
         if (text) {
           const parsed = JSON.parse(text);
           if (parsed.name) state.manageForm.name = parsed.name;
@@ -336,7 +416,7 @@
           showToast('AIが解析・自動入力しました！');
         }
       } catch (e) {
-        showToast('解析失敗: ' + e.message);
+        state.photoError = explainError(e);
       } finally {
         state.isAnalyzing = false;
         render();
@@ -358,12 +438,15 @@
           method: 'POST', headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'gemini',
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.6-flash',
             payload: { contents: [{ role: 'user', parts }] }
           })
         });
 
-        const result = await response.json();
+        const raw = await response.text();
+        if (!response.ok) throw new Error('HTTP_' + response.status + ': GASのアクセス設定を確認してください。');
+        let result;
+        try { result = JSON.parse(raw); } catch(e) { throw new Error('GAS_RESPONSE: JSON以外の応答です。アクセス権限かデプロイURLを確認してください。'); }
         if (result.status === 'error') throw new Error(result.message);
         state.aiReport = result.candidates?.[0]?.content?.parts?.[0]?.text || '生成失敗';
       } catch (e) {
@@ -390,11 +473,14 @@
           method: 'POST', headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'gemini',
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.6-flash',
             payload: { contents: [{ role: "user", parts: [{ text: prompt }] }] }
           })
         });
-        const result = await response.json();
+        const raw = await response.text();
+        if (!response.ok) throw new Error('HTTP_' + response.status + ': GASのアクセス設定を確認してください。');
+        let result;
+        try { result = JSON.parse(raw); } catch(e) { throw new Error('GAS_RESPONSE: JSON以外の応答です。アクセス権限かデプロイURLを確認してください。'); }
         if (result.status === 'error') throw new Error(result.message);
         const answer = result.candidates?.[0]?.content?.parts?.[0]?.text || '回答エラー';
         state.aiChatHistory.push({ role: 'model', text: answer });
@@ -489,43 +575,69 @@
       return { hasPlan: scheduled > 0, isFullDone: scheduled > 0 && completed >= scheduled };
     }
 
+    function getDayCounts(dateStr) {
+      const logs = state.logs[dateStr] || {};
+      let scheduled = 0, completed = 0;
+      for (const timing of ['morning','afternoon','evening']) {
+        for (const supp of state.supplements) {
+          if ((supp.timingSchedule?.[timing] || 0) > 0) {
+            scheduled++;
+            if ((logs[timing]?.[supp.id] || 0) > 0) completed++;
+          }
+        }
+      }
+      return { scheduled, completed };
+    }
+
     function renderCalendarHTML() {
       const year = state.calendarDate.getFullYear();
       const month = state.calendarDate.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const todayStr = formatDate(new Date());
-
-      let html = `<div class="bg-white p-4 rounded-2xl shadow-md border-2 border-slate-400 mb-5 relative overflow-hidden">
-        <div class="flex justify-between items-center mb-3">
-          <button onclick="changeMonth(-1)" class="p-2 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-          <div class="font-black text-lg text-teal-950">${year}年 ${month + 1}月</div>
-          <button onclick="changeMonth(1)" class="p-2 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+      const selectedCounts = getDayCounts(state.selectedDate);
+      const isToday = state.selectedDate === todayStr;
+      const percent = selectedCounts.scheduled ? Math.min(100,Math.round(selectedCounts.completed/selectedCounts.scheduled*100)) : 0;
+      let html = `<section class="bg-gradient-to-br from-teal-900 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg mb-4 border-2 border-teal-950">
+        <div class="flex items-start justify-between gap-2">
+          <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック</div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
+          <button onclick="goToToday()" class="shrink-0 rounded-xl bg-white text-teal-900 px-3 py-2 border-2 border-white font-black text-xs shadow">今日に戻る</button>
         </div>
-        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-600 mb-1">
-          <div class="text-red-600">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-600">土</div>
+        <div class="flex justify-between items-end mt-3"><span class="text-sm font-bold">${selectedCounts.scheduled ? '記録済み / 予定' : '予定の登録はありません'}</span><span class="text-xl font-black">${selectedCounts.completed}<span class="text-sm"> / ${selectedCounts.scheduled} 件</span></span></div>
+        <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="記録進捗" class="mt-2 h-3 w-full rounded-full bg-teal-950/70 overflow-hidden border border-teal-500"><div style="width:${percent}%" class="h-full bg-yellow-300 rounded-full transition-all"></div></div>
+      </section>`;
+      html += `<section class="bg-white px-3 sm:px-4 py-4 rounded-2xl shadow-md border-2 border-slate-600 mb-4">
+        <div class="flex justify-between items-center mb-4">
+          <button aria-label="前の月" onclick="changeMonth(-1)" class="p-2.5 bg-slate-100 border-2 border-slate-400 text-slate-900 rounded-xl hover:bg-slate-200"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+          <div class="font-black text-xl text-teal-950 tracking-tight">${year}年 ${month + 1}月</div>
+          <button aria-label="次の月" onclick="changeMonth(1)" class="p-2.5 bg-slate-100 border-2 border-slate-400 text-slate-900 rounded-xl hover:bg-slate-200"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
         </div>
-        <div class="grid grid-cols-7 gap-1">`;
-        
-      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
-      for (let i = 1; i <= daysInMonth; i++) {
-        const d = new Date(year, month, i);
-        const dateStr = formatDate(d);
+        <div class="calendar-board" role="group" aria-label="服用記録カレンダー">`;
+      ['日','月','火','水','木','金','土'].forEach((w,i) => { html += `<div class="calendar-weekday ${i===0?'!text-red-700':i===6?'!text-blue-700':''}">${w}</div>`; });
+      for (let i=0;i<firstDay;i++) html += `<div class="calendar-blank" aria-hidden="true"></div>`;
+      for (let i=1;i<=daysInMonth;i++) {
+        const dateStr = formatDate(new Date(year, month, i));
         const isSelected = dateStr === state.selectedDate;
-        const progress = getDayProgress(dateStr);
-        
-        let mColor = (state.logs[dateStr]?.morning && Object.keys(state.logs[dateStr].morning).length > 0) ? 'bg-amber-400' : 'bg-slate-300';
-        let aColor = (state.logs[dateStr]?.afternoon && Object.keys(state.logs[dateStr].afternoon).length > 0) ? 'bg-sky-400' : 'bg-slate-300';
-        let eColor = (state.logs[dateStr]?.evening && Object.keys(state.logs[dateStr].evening).length > 0) ? 'bg-indigo-400' : 'bg-slate-300';
-
-        let bgClass = isSelected ? 'bg-teal-700 text-white shadow-md transform scale-105 z-10 font-black ring-2 ring-teal-500' : (dateStr === todayStr ? 'bg-teal-50 text-teal-950 border-2 border-teal-500 font-bold' : 'hover:bg-slate-200 text-slate-800 font-medium');
-
-        html += `<div onclick="selectDate('${dateStr}')" class="flex flex-col items-center justify-center py-1.5 rounded-xl cursor-pointer transition-all ${bgClass} border border-transparent ${!isSelected && dateStr !== todayStr ? 'border-slate-100 hover:border-slate-300' : ''}">
-          <span class="text-xs leading-none">${i}</span>
-          ${progress.hasPlan ? `<div class="flex gap-0.5 justify-center mt-1 h-1.5"><span class="w-1.5 h-1.5 rounded-full ${mColor}"></span><span class="w-1.5 h-1.5 rounded-full ${aColor}"></span><span class="w-1.5 h-1.5 rounded-full ${eColor}"></span></div>` : '<div class="h-1.5 mt-1"></div>'}
-        </div>`;
+        const isCurrent = dateStr === todayStr;
+        const counts = getDayCounts(dateStr);
+        const done = counts.scheduled > 0 && counts.completed >= counts.scheduled;
+        const progress = state.logs[dateStr] || {};
+        const has = t => state.supplements.some(s => (progress[t]?.[s.id] || 0) > 0);
+        const colors = ['morning','afternoon','evening'].map((t,ix) => has(t) ? ['#fbbf24','#38bdf8','#a5b4fc'][ix] : (isSelected ? '#99aab5' : '#cbd5e1'));
+        html += `<button type="button" onclick="selectDate('${dateStr}')" aria-label="${year}年${month+1}月${i}日、${counts.completed}件記録済み" aria-pressed="${isSelected}" class="calendar-day ${isSelected?'is-selected':''} ${isCurrent?'is-today':''} ${done?'is-complete':''}">
+          <span>${i}${done?'<span class="ml-0.5 text-xs" aria-hidden="true">✓</span>':''}</span>
+          <span class="flex gap-1" aria-hidden="true">${colors.map(c=>`<span class="calendar-dot" style="background:${c}"></span>`).join('')}</span>
+        </button>`;
       }
-      html += `</div></div>`;
+      const tail=(7-(firstDay+daysInMonth)%7)%7;
+      for(let i=0;i<tail;i++) html += `<div class="calendar-blank" aria-hidden="true"></div>`;
+      html += `</div><div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs font-bold text-slate-700">
+        <span><span class="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full mr-1"></span>朝</span>
+        <span><span class="inline-block w-2.5 h-2.5 bg-sky-400 rounded-full mr-1"></span>昼</span>
+        <span><span class="inline-block w-2.5 h-2.5 bg-indigo-300 rounded-full mr-1"></span>夕</span>
+        <span><span class="inline-block w-2.5 h-2.5 bg-slate-300 rounded-full mr-1"></span>未記録</span>
+        <span class="text-teal-800">✓ 予定完了</span>
+      </div></section>`;
       return html;
     }
 
@@ -549,8 +661,8 @@
           ensureDayLog(state.selectedDate);
           
           html += `<div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-400">
-            <div class="flex justify-between border-b-2 border-slate-200 pb-3 mb-3">
-              <h2 class="text-lg font-black text-slate-900">${state.selectedDate}の記録</h2>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-400 pb-3 mb-3">
+              <h2 class="text-lg font-black text-slate-900">服用を記録 <span class="text-sm font-bold text-slate-600">(${state.selectedDate.slice(5).replace('-','/')})</span></h2>
               <div class="flex bg-slate-200 p-1 rounded-xl text-xs font-black border border-slate-300">
                 <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
                 <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
@@ -566,7 +678,7 @@
             timings.forEach(timing => {
               const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
               html += `<div class="mb-5">
-                <h3 class="font-black text-slate-800 text-sm mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-600"></i>${getTimingLabel(timing)}</h3>
+                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-600"></i>${getTimingLabel(timing)}</h3>
                 <div class="space-y-2">`;
 
               state.supplements.forEach(supp => {
@@ -575,17 +687,17 @@
                 const isChecked = loggedAmount !== undefined && loggedAmount > 0;
                 const displayVal = isChecked ? loggedAmount : (plannedAmount > 0 ? plannedAmount : 1);
 
-                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-500 bg-teal-50/50' : 'border-slate-300'} flex items-center justify-between gap-2">
+                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400'} flex items-center justify-between gap-2">
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
                     <div>
-                      <p class="font-black text-sm text-slate-900">${supp.name}</p>
-                      <p class="text-[10px] font-bold text-slate-600">目安: ${plannedAmount}粒</p>
+                      <p class="font-black text-base text-slate-900">${supp.name}</p>
+                      <p class="text-xs font-bold text-slate-700">目安: ${plannedAmount}粒</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
                     <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border-2 border-slate-400 rounded-lg outline-none text-sm focus:border-teal-500 focus:bg-white" />
-                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2 rounded-xl font-black text-xs border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
+                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
                       <i data-lucide="${isChecked ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>${isChecked ? '済' : '飲む'}
                     </button>
                   </div>
@@ -616,6 +728,7 @@
                     <label class="cursor-pointer bg-white border-2 border-teal-600 text-teal-800 font-black py-2 px-3 rounded-xl text-xs shadow-sm hover:bg-teal-50"><input type="file" accept="image/*" onchange="handleImageChange(event)" class="hidden" />写真を選択</label>
                   </div>
                   ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" class="bg-indigo-700 text-white font-black py-2 rounded-xl text-xs shadow-sm border-2 border-indigo-900">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
+                  ${errorPanel(state.photoError, '写真のAI解析に失敗しました')}
                 </div>
                 <div class="flex gap-2">
                   <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 ${state.editingSuppId ? 'bg-blue-600 border-blue-800 hover:bg-blue-700' : 'bg-teal-700 border-teal-900 hover:bg-teal-800'}">${state.editingSuppId ? '保存' : '登録'}</button>
@@ -631,7 +744,7 @@
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg border-2 border-slate-300 flex items-center justify-center"><i data-lucide="pill" class="text-slate-500"></i></div>`}
                     <div>
-                      <p class="font-black text-sm text-slate-900">${supp.name}</p>
+                      <p class="font-black text-base text-slate-900">${supp.name}</p>
                       <p class="text-[10px] font-bold text-slate-600">朝${supp.timingSchedule?.morning||0} 昼${supp.timingSchedule?.afternoon||0} 夕${supp.timingSchedule?.evening||0}</p>
                     </div>
                   </div>
@@ -679,6 +792,9 @@
               <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
               <input type="text" value="${state.gasUrl}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
             </div>
+            <button onclick="checkGasConnection()" ${state.checkingConnection ? 'disabled' : ''} class="w-full mt-3 bg-teal-800 text-white font-black py-3 rounded-xl text-sm border-2 border-teal-950">${state.checkingConnection ? '診断中…' : 'GAS接続を診断する'}</button>
+            ${state.connectionResult ? (state.connectionResult.startsWith('接続OK') ? `<p class="mt-2 rounded-xl border-2 border-green-700 bg-green-50 p-3 text-sm font-bold text-green-950">${safeHtml(state.connectionResult)}</p>` : errorPanel(state.connectionResult,'GAS接続診断結果')) : ''}
+            <p class="mt-2 text-xs font-bold text-slate-700">※診断で「接続OK」でも、Gemini APIキー・モデルの利用権限は別途確認が必要です。</p>
             <button onclick="saveSettings()" class="w-full mt-4 bg-slate-800 text-white font-black py-3 rounded-xl text-xs shadow-md border-2 border-slate-900 hover:bg-slate-900">設定を保存する</button>
           </div>`;
         }
