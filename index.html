@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>毎日のサプリ＆おくすり管理</title>
+  <!-- v1.4 写真の下書き保存 / IndexedDB移行 / バックアップ・復元 -->
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -124,92 +125,248 @@
       });
     }
 
-    let savedSupps = [];
-    try {
-      const stored = localStorage.getItem('supplements');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          savedSupps = parsed.map(s => {
-            const morning = s.timingSchedule?.morning ?? (s.defaultDosage ? Math.ceil(s.defaultDosage / 2) : 1);
-            const afternoon = s.timingSchedule?.afternoon ?? 0;
-            const evening = s.timingSchedule?.evening ?? (s.defaultDosage ? Math.floor(s.defaultDosage / 2) : 1);
-            return {
-              id: s.id || Date.now().toString(),
-              name: s.name || 'サプリメント',
-              recommendedDosage: Math.round(s.recommendedDosage || (morning + afternoon + evening) || 1),
-              timingSchedule: { morning: Math.round(morning), afternoon: Math.round(afternoon), evening: Math.round(evening) },
-              image: s.image || null
-            };
-          });
-        }
-      }
-    } catch (e) {
-      console.error("データの読み込みエラー", e);
-    }
+    // v1.4: 以前の localStorage データを読み取ったうえで、写真を含む本体を
+    // IndexedDB に保存します。画像を消して容量不足を回避する旧処理は使用しません。
+    const DB_NAME = 'supplement-care-storage';
+    const DB_VERSION = 1;
+    const SNAPSHOT_KEY = 'supplement_app_v2_snapshot';
+    const FALLBACK_KEY = 'supplement_app_v2_text_backup';
+    let storageDB = null;
+    let saveQueue = Promise.resolve(true);
+    let draftSaveTimer = null;
+    let dataReady = false;
 
-    if (savedSupps.length === 0) {
-      savedSupps = [
-        { id: '1', name: 'マルチビタミン', recommendedDosage: 2, timingSchedule: { morning: 1, afternoon: 0, evening: 1 }, image: null },
-        { id: '2', name: 'ビタミンC', recommendedDosage: 3, timingSchedule: { morning: 1, afternoon: 1, evening: 1 }, image: null }
-      ];
+    function safeLocalGet(key) {
+      try { return localStorage.getItem(key); } catch (err) { return null; }
     }
-
-    let migratedLogs = {};
-    try {
-      const rawLogs = JSON.parse(localStorage.getItem('logs')) || {};
-      Object.keys(rawLogs).forEach(dateKey => {
-        const dayVal = rawLogs[dateKey];
-        if (dayVal && (dayVal.morning || dayVal.afternoon || dayVal.evening)) {
-          migratedLogs[dateKey] = dayVal;
-        } else if (typeof dayVal === 'object') {
-          migratedLogs[dateKey] = { morning: { ...dayVal }, afternoon: {}, evening: {} };
+    function safeJsonParse(raw, fallback) {
+      if (raw === null || raw === undefined) return fallback;
+      try { return JSON.parse(raw); } catch (err) { console.warn('データ読み込み失敗:', err); return fallback; }
+    }
+    function normalizeSupplements(items) {
+      if (!Array.isArray(items)) return [];
+      return items.filter(x => x && typeof x === 'object').map((s, idx) => {
+        const morning = Number(s.timingSchedule?.morning ?? (s.defaultDosage ? Math.ceil(s.defaultDosage / 2) : 1)) || 0;
+        const afternoon = Number(s.timingSchedule?.afternoon ?? 0) || 0;
+        const evening = Number(s.timingSchedule?.evening ?? (s.defaultDosage ? Math.floor(s.defaultDosage / 2) : 1)) || 0;
+        return {
+          ...s,
+          id: String(s.id || `recovered-${idx}`),
+          name: String(s.name || '名称未設定'),
+          recommendedDosage: Math.max(0, Math.round(Number(s.recommendedDosage) || morning + afternoon + evening || 1)),
+          timingSchedule: {morning:Math.max(0,Math.round(morning)), afternoon:Math.max(0,Math.round(afternoon)), evening:Math.max(0,Math.round(evening))},
+          image: typeof s.image === 'string' ? s.image : null
+        };
+      });
+    }
+    function normalizeLogs(raw) {
+      const output = {};
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return output;
+      Object.keys(raw).forEach(date => {
+        const day = raw[date];
+        if (!day || typeof day !== 'object') return;
+        if (day.morning || day.afternoon || day.evening) {
+          output[date] = {morning:day.morning || {}, afternoon:day.afternoon || {}, evening:day.evening || {}};
+        } else {
+          output[date] = {morning:{...day}, afternoon:{}, evening:{}};
         }
       });
-    } catch(e) {
-      console.error("ログ読み込みエラー", e);
+      return output;
     }
-
+    function legacySnapshot() {
+      // バージョンアップ前のキーを絶対に先に消さず、既存データを移行する。
+      const suppsRaw = safeLocalGet('supplements');
+      const logRaw = safeLocalGet('logs');
+      const newer = safeJsonParse(safeLocalGet(SNAPSHOT_KEY), null);
+      const textOnly = safeJsonParse(safeLocalGet(FALLBACK_KEY), null);
+      if (newer && Array.isArray(newer.supplements)) return newer;
+      if (suppsRaw !== null || logRaw !== null || safeLocalGet('medicalHistory') !== null) {
+        return {
+          supplements: safeJsonParse(suppsRaw, []),
+          logs: safeJsonParse(logRaw, {}),
+          medicalHistory: safeLocalGet('medicalHistory') || '',
+          gasUrl: safeLocalGet('gasUrl') || ''
+        };
+      }
+      if (textOnly && Array.isArray(textOnly.supplements)) return textOnly;
+      return {supplements:[], logs:{}, medicalHistory:'', gasUrl:safeLocalGet('gasUrl') || ''};
+    }
+    const initial = legacySnapshot();
     const state = {
-      activeTab: 'log',
-      activeTiming: 'all',
-      selectedDate: formatDate(new Date()),
-      calendarDate: new Date(),
-      supplements: savedSupps,
-      logs: migratedLogs,
-      medicalHistory: localStorage.getItem('medicalHistory') || '',
-      gasUrl: localStorage.getItem('gasUrl') || '',
-      manageForm: { name: '', recommendedDosage: '', morning: '1', afternoon: '0', evening: '1' },
-      editingSuppId: null,
-      newSuppImage: null,
-      isAnalyzing: false,
-      aiLoading: false,
-      aiError: '',
-      photoError: '',
-      connectionResult: '',
-      checkingConnection: false,
-      aiReport: '',
-      aiChatHistory: [],
-      aiQuestion: '',
-      isAskingAI: false
+      activeTab:'log', activeTiming:'all', selectedDate:formatDate(new Date()), calendarDate:new Date(),
+      supplements:normalizeSupplements(initial.supplements), logs:normalizeLogs(initial.logs),
+      medicalHistory:initial.medicalHistory || '', gasUrl:initial.gasUrl || '',
+      manageForm:{name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'},
+      editingSuppId:null, newSuppImage:null,
+      isAnalyzing:false, aiLoading:false, aiError:'', photoError:'',
+      connectionResult:'',checkingConnection:false,aiReport:'',aiChatHistory:[],
+      aiQuestion:'',isAskingAI:false,
+      storageStatus:'保存先を確認中', storageError:''
     };
 
-    function saveData() {
-      try {
-        localStorage.setItem('supplements', JSON.stringify(state.supplements));
-        localStorage.setItem('logs', JSON.stringify(state.logs));
-        localStorage.setItem('medicalHistory', state.medicalHistory);
-        localStorage.setItem('gasUrl', state.gasUrl);
-      } catch (e) {
-        try {
-          // 容量オーバー回避処理
-          const stripped = state.supplements.map(s => ({ ...s, image: null }));
-          localStorage.setItem('supplements', JSON.stringify(stripped));
-          showToast('容量上限のため画像以外のデータを保存しました');
-        } catch (innerErr) {
-          showToast('ブラウザのデータ保存容量を超えました');
-        }
+    function applySnapshot(snapshot, restoreDraft=true) {
+      if (!snapshot || !Array.isArray(snapshot.supplements) || !snapshot.logs || typeof snapshot.logs !== 'object') {
+        throw new Error('データ形式が正しくありません。');
       }
+      state.supplements = normalizeSupplements(snapshot.supplements);
+      state.logs = normalizeLogs(snapshot.logs);
+      state.medicalHistory = typeof snapshot.medicalHistory === 'string' ? snapshot.medicalHistory : '';
+      state.gasUrl = typeof snapshot.gasUrl === 'string' ? snapshot.gasUrl : '';
+      state.cloudRevision = Number(snapshot.cloudRevision) || 0;
+      state.cloudEnabled = !!snapshot.cloudEnabled;
+      if (restoreDraft) {
+        state.manageForm = {...{name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'}, ...(snapshot.draft?.manageForm || {})};
+        state.newSuppImage = snapshot.draft?.image || null;
+        state.editingSuppId = snapshot.draft?.editingSuppId || null;
+        if (state.editingSuppId && !state.supplements.some(s => s.id === state.editingSuppId)) state.editingSuppId = null;
+      }
+    }
+    function makeSnapshot() {
+      return {
+        schemaVersion:2, updatedAt:new Date().toISOString(),
+        supplements:state.supplements.map(s => ({...s})),
+        logs:JSON.parse(JSON.stringify(state.logs)),
+        medicalHistory:state.medicalHistory, gasUrl:state.gasUrl,
+        cloudRevision:state.cloudRevision || 0, cloudEnabled:!!state.cloudEnabled,
+        draft:{manageForm:{...state.manageForm}, image:state.newSuppImage, editingSuppId:state.editingSuppId}
+      };
+    }
+    function openDB() {
+      return new Promise((resolve,reject) => {
+        if (!('indexedDB' in window)) return reject(new Error('IndexedDBは利用できません'));
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('records')) db.createObjectStore('records');
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('IndexedDB初期化失敗'));
+        request.onblocked = () => reject(new Error('別のタブがデータベースを使用中です'));
+      });
+    }
+    function dbRead(key) {
+      return new Promise((resolve,reject) => {
+        const tx = storageDB.transaction('records','readonly');
+        const req = tx.objectStore('records').get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    function dbWrite(snapshot) {
+      return new Promise((resolve,reject) => {
+        const tx = storageDB.transaction('records','readwrite');
+        const store = tx.objectStore('records');
+        const request = store.get('current');
+        request.onsuccess = () => {
+          if (request.result) store.put(request.result,'previous');
+          store.put(snapshot,'current');
+        };
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error || new Error('IndexedDBへの保存に失敗'));
+        tx.onabort = () => reject(tx.error || new Error('保存処理を中断'));
+      });
+    }
+    async function initializeApp() {
+      try {
+        storageDB = await openDB();
+        const record = await dbRead('current');
+        if (record && Array.isArray(record.supplements)) {
+          applySnapshot(record);
+        } else {
+          await dbWrite(makeSnapshot()); // 旧データを画像込みで初回移行
+        }
+        state.storageStatus = '保存先：この端末内（IndexedDB）';
+      } catch (err) {
+        console.warn('IndexedDB:',err);
+        storageDB = null;
+        state.storageStatus = '保存先：ブラウザ内の代替保存';
+        state.storageError = '保護ストレージを利用できません。データのバックアップを取得してください。';
+      }
+      dataReady = true;
+      render();
+    }
+    async function writeSnapshot(snapshot) {
+      let dbOK = false, localOK = false;
+      if (storageDB) {
+        try { await dbWrite(snapshot); dbOK = true; } catch (err) { console.error('IndexedDB保存失敗:',err); }
+      }
+      try {
+        // 一括バックアップが書けた場合にのみ、従来キーへも互換保存する。
+        // 容量不足では古い写真を null で上書きすることを絶対にしない。
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+        localOK = true;
+        try {
+          localStorage.setItem('supplements', JSON.stringify(snapshot.supplements));
+          localStorage.setItem('logs', JSON.stringify(snapshot.logs));
+          localStorage.setItem('medicalHistory', snapshot.medicalHistory);
+          localStorage.setItem('gasUrl', snapshot.gasUrl);
+        } catch (compatError) { console.warn('従来キーの互換保存:', compatError); }
+      } catch (err) {
+        console.warn('localStorage容量制限。写真の削除は行いません:', err);
+        try {
+          const compact = {...snapshot,
+            supplements:snapshot.supplements.map(s => ({...s,image:null})),
+            draft:{...snapshot.draft,image:null}};
+          localStorage.setItem(FALLBACK_KEY, JSON.stringify(compact));
+        } catch (ignore) {}
+      }
+      const ok = dbOK || localOK;
+      if (!ok) {
+        state.storageError = '保存できませんでした。画面を閉じる前にバックアップを取得してください。ブラウザの空き容量・プライベートモードを確認してください。';
+        state.storageStatus = '保存エラー';
+      } else {
+        state.storageError = '';
+        state.storageStatus = dbOK ? '保存先：この端末内（IndexedDB）' : '保存先：ブラウザ内の代替保存';
+      }
+      return ok;
+    }
+    function saveData() {
+      if (!dataReady) return Promise.resolve(false);
+      const snapshot = makeSnapshot();
+      const result = saveQueue.catch(() => false).then(() => writeSnapshot(snapshot));
+      saveQueue = result;
+      return result;
+    }
+    function scheduleDraftSave() {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(() => {saveData().then(ok => {if (!ok) showToast('下書きを保存できませんでした');});},500);
+    }
+    function resetDraft() {
+      state.manageForm = {name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'};
+      state.newSuppImage = null;
+      state.editingSuppId = null;
+      state.photoError = '';
+    }
+    function downloadBackup() {
+      const backup = {...makeSnapshot(), kind:'supplement-care-backup', exportedAt:new Date().toISOString()};
+      const blob = new Blob([JSON.stringify(backup,null,2)],{type:'application/json;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `サプリおくすりバックアップ_${formatDate(new Date())}.json`;
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url),30000);
+      showToast('バックアップのダウンロードを開始しました。保存先を確認してください');
+    }
+    async function importBackup(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        if (file.size > 60 * 1024 * 1024) throw new Error('ファイルが大きすぎます（上限60MB）。');
+        const backup = JSON.parse(await file.text());
+        if (!backup || !Array.isArray(backup.supplements) || !backup.logs || typeof backup.logs !== 'object') {
+          throw new Error('バックアップファイルの形式が違います。');
+        }
+        if (!confirm(`バックアップから${backup.supplements.length}件の登録を復元します。現在のデータは置き換わります。よろしいですか？`)) return;
+        downloadBackup(); // 誤操作に備え、復元前のデータを先に書き出す
+        const current = makeSnapshot();
+        applySnapshot({...backup,cloudEnabled:false,cloudRevision:0});
+        const ok = await saveData();
+        if (!ok) {applySnapshot(current);throw new Error('保存に失敗しました。元のデータに戻しました。');}
+        showToast('データを復元しました');
+        render();
+      } catch (error) { alert('復元できませんでした：' + error.message); }
+      finally {event.target.value='';}
     }
 
     function showToast(message) {
@@ -267,15 +424,17 @@
       if (currentLog !== undefined && currentLog > 0) {
         delete state.logs[state.selectedDate][timing][suppId];
         newAmount = 0;
-        showToast(`「${supp.name}」を未記録に戻しました`);
+        showToast(`「${safeHtml(supp.name)}」を未記録に戻しました`);
       } else {
         newAmount = plannedAmount > 0 ? plannedAmount : 1;
         state.logs[state.selectedDate][timing][suppId] = newAmount;
-        showToast(`「${supp.name}」を ${newAmount}粒 記録しました`);
+        showToast(`「${safeHtml(supp.name)}」を ${newAmount}粒 記録しました`);
       }
 
-      saveData();
+      const localSaved = await saveData();
       render();
+      if (!localSaved) { showToast('服用記録を保存できませんでした'); return; }
+      scheduleCloudUpload();
 
       if (state.gasUrl) {
         try {
@@ -283,7 +442,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
-              action: 'log', date: state.selectedDate, timing: timing,
+              action: 'log', cloudKey:state.cloudKey.trim(), date: state.selectedDate, timing: timing,
               timingLabel: getTimingLabel(timing), suppId: supp.id, suppName: supp.name, amount: newAmount, unit: '粒'
             })
           });
@@ -291,12 +450,14 @@
       }
     }
 
-    function handleCustomDosageChange(suppId, timing, val) {
+    async function handleCustomDosageChange(suppId, timing, val) {
       ensureDayLog(state.selectedDate);
       const amount = Math.max(0, Math.round(Number(val) || 0));
       if (amount === 0) delete state.logs[state.selectedDate][timing][suppId];
       else state.logs[state.selectedDate][timing][suppId] = amount;
-      saveData();
+      const ok = await saveData();
+      if (!ok) showToast('粒数を保存できませんでした');
+      else scheduleCloudUpload();
       render();
     }
 
@@ -304,18 +465,26 @@
       return timing === 'morning' ? '朝' : (timing === 'afternoon' ? '昼' : '夕・夜');
     }
 
-    function handleImageChange(event) {
+    async function handleImageChange(event) {
       const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = async (e) => { 
-          try {
-            state.newSuppImage = await resizeImage(e.target.result, 500, 500);
-            render(); 
-          } catch(err) { showToast('画像処理失敗'); }
-        };
-        reader.readAsDataURL(file);
-      }
+      if (!file) return;
+      if (!file.type.startsWith('image/')) return showToast('画像ファイルを選択してください');
+      try {
+        const dataUrl = await new Promise((resolve,reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('画像ファイルを読み込めませんでした'));
+          reader.readAsDataURL(file);
+        });
+        // 縮小に失敗しても元の画像をできるだけ保持する。
+        try { state.newSuppImage = await resizeImage(dataUrl, 500, 500); }
+        catch (err) { state.newSuppImage = dataUrl; }
+        state.photoError='';
+        const ok = await saveData();
+        if (!ok) state.photoError='写真の下書き保存に失敗しました。容量・ブラウザ設定を確認してください。';
+        else showToast('写真を下書き保存しました。AI解析できなくても残ります');
+        render();
+      } catch(err) {state.photoError='画像の読み込みに失敗しました: ' + err.message;render();}
     }
 
     function safeHtml(value) {
@@ -340,6 +509,7 @@
 
     async function gasRequest(payload) {
       const url = normalizeGasUrl(state.gasUrl);
+      if(payload.action === 'gemini' && state.cloudKey) payload={...payload,cloudKey:state.cloudKey.trim()};
       let response;
       try {
         response = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
@@ -355,6 +525,136 @@
         throw new Error((result.code || 'GEMINI_ERROR') + ': ' + problem);
       }
       return result;
+    }
+
+    // v1.5: 同期キーはGitHubのソースやバックアップJSONに入れない。
+    const CLOUD_KEY_LOCAL = 'supplement_cloud_secret_v1';
+    state.cloudKey = safeLocalGet(CLOUD_KEY_LOCAL) || '';
+    state.cloudEnabled = !!initial.cloudEnabled;
+    state.cloudRevision = Number(initial.cloudRevision) || 0;
+    state.cloudStatus = '';
+    state.cloudError = '';
+    state.cloudBusy = false;
+    let cloudSyncTimer = null;
+    let cloudInFlight = false;
+    let cloudLocalChanges = 0;
+
+    function rememberCloudKey() {
+      try {localStorage.setItem(CLOUD_KEY_LOCAL,state.cloudKey.trim());showToast('同期キーをこの端末に保存しました');}
+      catch(e) {state.cloudError='同期キーを保存できませんでした: '+e.message;}
+      render();
+    }
+    function cloudRequest(action,extra={}) {
+      const key = state.cloudKey.trim();
+      if(!/^[a-f0-9]{64}$/i.test(key)) throw new Error('同期キーは、GASでsetupCloudSync()を実行した際に表示された64文字のキーです。');
+      return gasRequest({action,cloudKey:key,...extra});
+    }
+    async function checkCloudStatus() {
+      state.cloudBusy=true;state.cloudError='';state.cloudStatus='';render();
+      try {
+        const r=await cloudRequest('cloudStatus');
+        state.cloudStatus=r.hasCloudData ? `Google側にデータがあります（改訂${r.revision}、${r.updatedAt}）。この端末は改訂${state.cloudRevision}です。` : 'Google側はまだ空です。まず「Googleに保存」を押してください。';
+      } catch(e) {state.cloudError=explainError(e);}
+      finally {state.cloudBusy=false;render();}
+    }
+    function scheduleCloudUpload() {
+      if (!state.cloudEnabled || !state.cloudKey || !state.gasUrl) return;
+      cloudLocalChanges++;
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer=setTimeout(()=>pushCloudData(false),1800);
+    }
+    async function pushCloudData(manual=true) {
+      if(cloudInFlight) {
+        if(manual) showToast('同期処理中です。完了をお待ちください');
+        else {clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),2500);}
+        return;
+      }
+      cloudInFlight=true;
+      state.cloudBusy=true;state.cloudError='';if(manual)state.cloudStatus='';
+      render();
+      const seq=cloudLocalChanges;
+      try {
+        await saveQueue;
+        // 下書きは端末のみ。登録済みの写真・服用記録・既往歴をGoogleに保存する。
+        const data=makeSnapshot();
+        const r=await cloudRequest('cloudPush',{expectedRevision:state.cloudRevision,snapshot:{supplements:data.supplements,logs:data.logs,medicalHistory:data.medicalHistory}});
+        state.cloudRevision=Number(r.revision);
+        state.cloudEnabled=true;
+        try {localStorage.setItem(CLOUD_KEY_LOCAL,state.cloudKey.trim());} catch(ignore) {}
+        await saveData();
+        state.cloudStatus=`Google保存成功：改訂${r.revision}（画像${r.photoUploads}件、登録変更${r.supplementChanges}件、服用変更${r.changedLogs}件）`;
+        if(manual)showToast('Google Drive・スプレッドシートへ保存しました');
+      } catch(e) {
+        state.cloudError='端末内のデータは残っています。Googleへの保存は未完了です。'+explainError(e);
+      } finally {
+        state.cloudBusy=false;cloudInFlight=false;render();
+        if(!state.cloudError && seq!==cloudLocalChanges) {
+          clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),1800);
+        }
+      }
+    }
+    function meaningfulItem_(item) {
+      return JSON.stringify([item.name,item.recommendedDosage,item.timingSchedule,item.image||null]);
+    }
+    function mergeCloudSnapshot_(local,remote) {
+      const merged={...local,supplements:normalizeSupplements(local.supplements),logs:normalizeLogs(local.logs)};
+      const byId=new Map(merged.supplements.map(s=>[s.id,s]));
+      const mapId={};let conflicts=0,added=0;
+      const remoteById=new Map((remote.supplements||[]).map(s=>[s.id,s]));
+      function cloudClone(id) {
+        if(mapId[id] && mapId[id]!==id) return mapId[id];
+        const r=remoteById.get(id);
+        if(!r) return id;
+        const cloneId='cloud_'+String(id).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,70)+'_'+Date.now().toString(36);
+        merged.supplements.push({...r,id:cloneId,name:String(r.name||'名称未設定')+'（クラウド版・要確認）'});
+        byId.set(cloneId,merged.supplements[merged.supplements.length-1]);
+        mapId[id]=cloneId;conflicts++;
+        return cloneId;
+      }
+      for(const r of remote.supplements||[]) {
+        const l=byId.get(r.id);
+        if(!l){merged.supplements.push(r);byId.set(r.id,r);mapId[r.id]=r.id;added++;}
+        else if(meaningfulItem_(l)===meaningfulItem_(r)){mapId[r.id]=r.id;}
+        else if(!l.image && r.image && JSON.stringify([l.name,l.recommendedDosage,l.timingSchedule])===JSON.stringify([r.name,r.recommendedDosage,r.timingSchedule])){
+          l.image=r.image;mapId[r.id]=r.id;
+        }
+        else cloudClone(r.id);
+      }
+      for(const [date,day] of Object.entries(remote.logs||{})) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+        if(!merged.logs[date])merged.logs[date]={morning:{},afternoon:{},evening:{}};
+        for(const timing of ['morning','afternoon','evening']) {
+          merged.logs[date][timing] ||= {};
+          for(const [id,amount] of Object.entries(day[timing]||{})) {
+            let target=mapId[id]||id;
+            if(!byId.has(target)) continue;
+            if (merged.logs[date][timing][target]!==undefined && Number(merged.logs[date][timing][target])!==Number(amount)) {
+              target=cloudClone(id);
+            }
+            if(merged.logs[date][timing][target]===undefined)merged.logs[date][timing][target]=amount;
+          }
+        }
+      }
+      const a=String(merged.medicalHistory||'').trim(), b=String(remote.medicalHistory||'').trim();
+      if(b && a!==b) merged.medicalHistory = a ? a+'\n\n【クラウドから復元した既往歴・要確認】\n'+b : b;
+      return {merged,conflicts,added};
+    }
+    async function pullCloudData() {
+      if(!confirm('クラウドから取り込みます。現在の端末データは先にJSONでバックアップし、消さずに統合します。続けますか？')) return;
+      state.cloudBusy=true;state.cloudError='';state.cloudStatus='';render();
+      try {
+        const r=await cloudRequest('cloudPull');
+        if(!r.hasCloudData)throw new Error('Google側には保存済みのデータがありません。');
+        await saveQueue;
+        downloadBackup();  // 取り込み前に必ずローカル退避
+        const old=makeSnapshot();
+        const result=mergeCloudSnapshot_(old,r.snapshot);
+        applySnapshot({...result.merged,gasUrl:state.gasUrl,cloudRevision:r.revision,cloudEnabled:true});
+        const ok=await saveData();
+        if(!ok){applySnapshot(old);throw new Error('端末へ保存できませんでした。元のデータに戻しました。');}
+        state.cloudStatus=`クラウドから取り込み完了：追加${result.added}件、内容違い${result.conflicts}件（内容違いは別名で両方保持）。取り込み前データをダウンロード済み。`;
+      } catch(e){state.cloudError=explainError(e);}
+      finally{state.cloudBusy=false;render();}
     }
 
     function errorPanel(message, heading='AI通信エラー') {
@@ -416,11 +716,20 @@
           showToast('AIが解析・自動入力しました！');
         }
       } catch (e) {
-        state.photoError = explainError(e);
+        state.photoError = explainError(e) + '\n※写真はそのまま残っています。名前を手入力して「登録」するか、写真だけ仮登録できます。';
       } finally {
         state.isAnalyzing = false;
+        await saveData(); // 失敗でも写真付きの下書きを維持
         render();
       }
+    }
+
+    function getAIReadableSupplements() {
+      // 写真のBase64本体を文章分析へ誤送信しない。画像解析ボタンでは別途画像を送信する。
+      return state.supplements.map(s => ({
+        id:s.id, name:s.name, recommendedDosage:s.recommendedDosage,
+        timingSchedule:s.timingSchedule, hasImage:!!s.image
+      }));
     }
 
     async function handleGenerateAIReport() {
@@ -431,7 +740,7 @@
 
       try {
         const parts = [{ 
-          text: `あなたはプロのアドバイザーです。以下のデータをもとに週間レビューを作成してください。\n既往歴: ${state.medicalHistory || "なし"}\nサプリ: ${JSON.stringify(state.supplements)}\n最近のログ: ${JSON.stringify(state.logs)}`
+          text: `あなたはプロのアドバイザーです。以下のデータをもとに週間レビューを作成してください。\n既往歴: ${state.medicalHistory || "なし"}\nサプリ: ${JSON.stringify(getAIReadableSupplements())}\n最近のログ: ${JSON.stringify(state.logs)}`
         }];
 
         const response = await fetch(state.gasUrl.trim().replace(/\/edit.*$/, '/exec'), {
@@ -468,7 +777,7 @@
       render();
 
       try {
-        const prompt = `あなたはプロのヘルスケアアドバイザーです。既往歴「${state.medicalHistory || "特になし"}」、登録サプリ「${JSON.stringify(state.supplements)}」、服薬ログ「${JSON.stringify(state.logs)}」を踏まえて、次の質問に答えてください。\n\n質問: ${question}`;
+        const prompt = `あなたはプロのヘルスケアアドバイザーです。既往歴「${state.medicalHistory || "特になし"}」、登録サプリ「${JSON.stringify(getAIReadableSupplements())}」、服薬ログ「${JSON.stringify(state.logs)}」を踏まえて、次の質問に答えてください。\n\n質問: ${question}`;
         const response = await fetch(state.gasUrl.trim().replace(/\/edit.*$/, '/exec'), {
           method: 'POST', headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
@@ -502,58 +811,74 @@
       state.manageForm.evening = String(supp.timingSchedule?.evening ?? 0);
       state.newSuppImage = supp.image;
       state.editingSuppId = id;
+      state.photoError = '';
+      scheduleDraftSave();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       render();
     }
 
-    function cancelEdit() {
-      state.manageForm = { name: '', recommendedDosage: '', morning: '1', afternoon: '0', evening: '1' };
-      state.newSuppImage = null;
-      state.editingSuppId = null;
+    async function cancelEdit() {
+      resetDraft();
+      const ok = await saveData();
       render();
+      if (!ok) showToast('下書きの変更を保存できませんでした');
     }
 
-    function handleSaveSupplement(event) {
+    async function handleSaveSupplement(event) {
       event.preventDefault();
       const { name, recommendedDosage, morning, afternoon, evening } = state.manageForm;
-      if (!name) return showToast('サプリ名を入力してください');
-      
-      const mVal = Math.max(0, Math.round(Number(morning) || 0));
-      const aVal = Math.max(0, Math.round(Number(afternoon) || 0));
-      const eVal = Math.max(0, Math.round(Number(evening) || 0));
+      if (!name.trim() && !state.newSuppImage) return showToast('名前または写真を入力してください');
+      const photoOnly = !name.trim() && !!state.newSuppImage;
+      const finalName = photoOnly ? '写真のみ登録（未解析）' : name.trim();
+      const mVal = photoOnly ? 0 : Math.max(0, Math.round(Number(morning) || 0));
+      const aVal = photoOnly ? 0 : Math.max(0, Math.round(Number(afternoon) || 0));
+      const eVal = photoOnly ? 0 : Math.max(0, Math.round(Number(evening) || 0));
       const sum = mVal + aVal + eVal;
-      const recVal = recommendedDosage ? Math.round(Number(recommendedDosage)) : (sum > 0 ? sum : 1);
-
+      const recVal = photoOnly ? 0 : (recommendedDosage ? Math.max(0,Math.round(Number(recommendedDosage)||0)) : sum);
+      const prevSnapshot = makeSnapshot();
       const suppData = {
-        name,
-        recommendedDosage: recVal,
-        timingSchedule: { morning: mVal, afternoon: aVal, evening: eVal },
-        image: state.newSuppImage
+        name:finalName,
+        recommendedDosage:recVal,
+        timingSchedule:{morning:mVal,afternoon:aVal,evening:eVal},
+        image:state.newSuppImage // AIが失敗しても写真を必ず使う
       };
-
+      let nextSupplements = state.supplements.map(s => ({...s}));
       if (state.editingSuppId) {
-        const index = state.supplements.findIndex(s => s.id === state.editingSuppId);
-        if (index !== -1) state.supplements[index] = { ...state.supplements[index], ...suppData };
-        showToast('情報を更新しました');
+        const index = nextSupplements.findIndex(s => s.id === state.editingSuppId);
+        if (index < 0) return showToast('編集対象のデータが見つかりません');
+        nextSupplements[index] = {...nextSupplements[index],...suppData};
       } else {
-        state.supplements.push({ id: Date.now().toString(), ...suppData });
-        showToast('新しく登録しました');
+        nextSupplements.push({id:Date.now().toString()+'-'+Math.random().toString(36).slice(2,7),...suppData});
       }
-      cancelEdit();
-      saveData();
+      state.supplements = nextSupplements;
+      const editing = !!state.editingSuppId;
+      resetDraft();
+      clearTimeout(draftSaveTimer);
+      const ok = await saveData();
+      if (!ok) {
+        applySnapshot(prevSnapshot);
+        render();
+        return showToast('保存できませんでした。写真と入力内容は画面に残しています');
+      }
+      scheduleCloudUpload();
       render();
+      showToast(photoOnly ? '写真だけ仮登録しました。後から名前・数量を編集できます' : editing ? '写真と登録内容を更新しました' : '写真と登録内容を保存しました');
     }
 
-    function handleDeleteSupplement(id) {
+    async function handleDeleteSupplement(id) {
+      const supp = state.supplements.find(s => s.id === id);
+      if (!supp || !confirm(`「${safeHtml(supp.name)}」を削除しますか？（復元にはバックアップが必要です）`)) return;
+      const prevSnapshot = makeSnapshot();
       state.supplements = state.supplements.filter(s => s.id !== id);
-      if (state.editingSuppId === id) cancelEdit();
-      saveData();
+      if (state.editingSuppId === id) resetDraft();
+      const ok = await saveData();
+      if (!ok) {applySnapshot(prevSnapshot);showToast('削除結果を保存できませんでした');}
+      else {showToast('登録を削除しました');scheduleCloudUpload();}
       render();
-      showToast('サプリを削除しました');
     }
 
-    function saveHistory() { saveData(); showToast('既往歴を保存しました'); }
-    function saveSettings() { saveData(); showToast('設定を保存しました'); }
+    async function saveHistory() {const ok=await saveData();if(ok)scheduleCloudUpload();showToast(ok?'既往歴を保存しました':'保存できませんでした');}
+    async function saveSettings() {const ok=await saveData();showToast(ok?'設定を保存しました':'保存できませんでした');}
 
     function getDayProgress(dateStr) {
       ensureDayLog(dateStr);
@@ -691,7 +1016,7 @@
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
                     <div>
-                      <p class="font-black text-base text-slate-900">${supp.name}</p>
+                      <p class="font-black text-base text-slate-900">${safeHtml(supp.name)}</p>
                       <p class="text-xs font-bold text-slate-700">目安: ${plannedAmount}粒</p>
                     </div>
                   </div>
@@ -713,13 +1038,13 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${state.editingSuppId ? 'border-blue-500 bg-blue-50' : 'border-slate-400'}">
               <h2 class="text-base font-black mb-3"><i data-lucide="${state.editingSuppId ? 'edit-3' : 'plus-circle'}" class="inline w-5 h-5 mr-1 ${state.editingSuppId ? 'text-blue-700' : 'text-teal-700'}"></i>${state.editingSuppId ? '編集' : '追加'}</h2>
               <form onsubmit="handleSaveSupplement(event)" class="space-y-4">
-                <input type="text" value="${state.manageForm.name}" oninput="state.manageForm.name=this.value" placeholder="サプリ・薬の名前" class="w-full p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-teal-500" />
+                <input type="text" value="${safeHtml(state.manageForm.name)}" oninput="state.manageForm.name=this.value;scheduleDraftSave()" placeholder="サプリ・薬の名前" class="w-full p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-teal-500" />
                 <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300">
                   <label class="text-xs font-black block mb-2 text-slate-800">いつ何粒飲むか</label>
                   <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-indigo-700">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-indigo-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-indigo-700">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-indigo-500 mt-1" /></div>
                   </div>
                 </div>
                 <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2">
@@ -727,11 +1052,14 @@
                     ${state.newSuppImage ? `<img src="${state.newSuppImage}" class="w-12 h-12 rounded-lg object-cover border-2 border-slate-400 shadow-sm" />` : `<div class="w-12 h-12 rounded-lg bg-white flex items-center justify-center border-2 border-dashed border-slate-400"><i data-lucide="camera" class="text-slate-500"></i></div>`}
                     <label class="cursor-pointer bg-white border-2 border-teal-600 text-teal-800 font-black py-2 px-3 rounded-xl text-xs shadow-sm hover:bg-teal-50"><input type="file" accept="image/*" onchange="handleImageChange(event)" class="hidden" />写真を選択</label>
                   </div>
-                  ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" class="bg-indigo-700 text-white font-black py-2 rounded-xl text-xs shadow-sm border-2 border-indigo-900">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
+                  ${state.newSuppImage ? `<p class="text-sm font-black text-teal-900 bg-teal-50 border border-teal-600 rounded-lg p-2">📷 写真は下書きに保存されます。AIが失敗しても手入力・仮登録できます。</p>` : ''}
+                  ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" ${state.isAnalyzing ? 'disabled' : ''} class="bg-indigo-700 text-white font-black py-3 rounded-xl text-sm shadow-sm border-2 border-indigo-900 disabled:opacity-60">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
                   ${errorPanel(state.photoError, '写真のAI解析に失敗しました')}
                 </div>
+                <div class="text-xs font-bold text-slate-700">AIが推定した名前・服用量は必ず現物の表示や処方指示で確認してください。</div>
+                <div class="text-xs font-bold text-slate-700">写真だけでも登録できます。名前が空なら「写真のみ登録（未解析）」として保存します。服用量は安全のため0にし、後から確認して設定できます。</div>
                 <div class="flex gap-2">
-                  <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 ${state.editingSuppId ? 'bg-blue-600 border-blue-800 hover:bg-blue-700' : 'bg-teal-700 border-teal-900 hover:bg-teal-800'}">${state.editingSuppId ? '保存' : '登録'}</button>
+                  <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 ${state.editingSuppId ? 'bg-blue-600 border-blue-800 hover:bg-blue-700' : 'bg-teal-700 border-teal-900 hover:bg-teal-800'}">${state.editingSuppId ? '写真と内容を保存' : '写真・内容を登録'}</button>
                   ${state.editingSuppId ? `<button type="button" onclick="cancelEdit()" class="bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-xl text-sm border-2 border-slate-400 hover:bg-slate-400">中止</button>` : ''}
                 </div>
               </form>
@@ -744,7 +1072,7 @@
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg border-2 border-slate-300 flex items-center justify-center"><i data-lucide="pill" class="text-slate-500"></i></div>`}
                     <div>
-                      <p class="font-black text-base text-slate-900">${supp.name}</p>
+                      <p class="font-black text-base text-slate-900">${safeHtml(supp.name)}</p>
                       <p class="text-[10px] font-bold text-slate-600">朝${supp.timingSchedule?.morning||0} 昼${supp.timingSchedule?.afternoon||0} 夕${supp.timingSchedule?.evening||0}</p>
                     </div>
                   </div>
@@ -759,7 +1087,7 @@
         } else if (state.activeTab === 'history') {
           html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-amber-500">
             <h2 class="text-base font-black text-amber-950 mb-2 flex items-center gap-2"><i data-lucide="file-heart" class="text-amber-700"></i>既往歴・体質メモ</h2>
-            <textarea oninput="state.medicalHistory=this.value" placeholder="持病やアレルギーなどを入力" class="w-full h-48 p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-amber-500 bg-slate-50 focus:bg-white">${state.medicalHistory}</textarea>
+            <textarea oninput="state.medicalHistory=this.value;scheduleDraftSave()" placeholder="持病やアレルギーなどを入力" class="w-full h-48 p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-amber-500 bg-slate-50 focus:bg-white">${safeHtml(state.medicalHistory)}</textarea>
             <button onclick="saveHistory()" class="w-full mt-3 bg-amber-600 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 border-amber-800 hover:bg-amber-700">保存する</button>
           </div>`;
         } else if (state.activeTab === 'ai') {
@@ -768,14 +1096,14 @@
               <h2 class="text-base font-black mb-2 flex items-center gap-2"><i data-lucide="sparkles" class="text-yellow-300"></i>AI 週間分析レポート</h2>
               <button onclick="handleGenerateAIReport()" ${state.aiLoading ? 'disabled' : ''} class="w-full bg-white text-indigo-950 font-black py-3 rounded-xl text-sm shadow-md border-2 border-indigo-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">${state.aiLoading ? '分析中...' : 'レポート生成'}</button>
             </div>
-            ${state.aiReport ? `<div class="bg-white p-4 rounded-2xl border-2 border-indigo-500 font-bold whitespace-pre-wrap shadow-sm text-xs leading-relaxed text-slate-800">${state.aiReport}</div>` : ''}
+            ${state.aiReport ? `<div class="bg-white p-4 rounded-2xl border-2 border-indigo-500 font-bold whitespace-pre-wrap shadow-sm text-xs leading-relaxed text-slate-800">${safeHtml(state.aiReport)}</div>` : ''}
 
             <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-300 flex flex-col h-[400px]">
               <h3 class="font-black text-indigo-950 mb-2 text-sm">ヘルスケアAIチャット</h3>
               <div class="flex-grow overflow-y-auto mb-3 space-y-2 pr-1" id="ai-chat-area">
                 ${state.aiChatHistory.map(msg => `
                   <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-[85%] p-3 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-2 border-indigo-700' : 'bg-slate-100 text-slate-800 rounded-tl-none border-2 border-slate-300'}">${msg.text}</div>
+                    <div class="max-w-[85%] p-3 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-2 border-indigo-700' : 'bg-slate-100 text-slate-800 rounded-tl-none border-2 border-slate-300'}">${safeHtml(msg.text)}</div>
                   </div>
                 `).join('')}
               </div>
@@ -790,15 +1118,46 @@
             <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定</h2>
             <div class="p-3 border-2 border-teal-300 bg-teal-50 rounded-xl">
               <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
-              <input type="text" value="${state.gasUrl}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
+              <input type="text" value="${safeHtml(state.gasUrl)}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
             </div>
             <button onclick="checkGasConnection()" ${state.checkingConnection ? 'disabled' : ''} class="w-full mt-3 bg-teal-800 text-white font-black py-3 rounded-xl text-sm border-2 border-teal-950">${state.checkingConnection ? '診断中…' : 'GAS接続を診断する'}</button>
             ${state.connectionResult ? (state.connectionResult.startsWith('接続OK') ? `<p class="mt-2 rounded-xl border-2 border-green-700 bg-green-50 p-3 text-sm font-bold text-green-950">${safeHtml(state.connectionResult)}</p>` : errorPanel(state.connectionResult,'GAS接続診断結果')) : ''}
             <p class="mt-2 text-xs font-bold text-slate-700">※診断で「接続OK」でも、Gemini APIキー・モデルの利用権限は別途確認が必要です。</p>
             <button onclick="saveSettings()" class="w-full mt-4 bg-slate-800 text-white font-black py-3 rounded-xl text-xs shadow-md border-2 border-slate-900 hover:bg-slate-900">設定を保存する</button>
-          </div>`;
+          </div>
+          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-teal-700 mt-4">
+            <h2 class="text-lg font-black text-teal-950 mb-2">☁ Google Drive・スプレッドシート同期</h2>
+            <p class="text-sm text-slate-800 font-bold leading-relaxed mb-3">登録した写真は非公開のDriveへ、サプリ台帳・服用履歴・既往歴はスプレッドシートへ変更履歴を残します。初回はバックアップ後に手動保存してください。その後は登録・服用変更時に自動同期します。</p>
+            <label for="sync-secret" class="block text-sm font-black text-slate-900 mb-1">同期キー（GASで setupCloudSync を実行して取得）</label>
+            <input id="sync-secret" type="password" autocomplete="off" placeholder="64文字の同期キー" value="${safeHtml(state.cloudKey)}" oninput="state.cloudKey=this.value" class="w-full p-3 rounded-xl border-2 border-slate-500 text-base text-slate-900 bg-white" />
+            <button type="button" onclick="rememberCloudKey()" class="mt-2 w-full p-3 border-2 border-teal-700 text-teal-950 bg-teal-50 rounded-xl font-black text-sm">同期キーを端末に保存</button>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <button type="button" onclick="checkCloudStatus()" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-slate-100 text-slate-900 border-2 border-slate-500 text-sm font-black disabled:opacity-50">クラウド状態を確認</button>
+              <button type="button" onclick="pushCloudData(true)" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-teal-800 text-white border-2 border-teal-950 text-sm font-black disabled:opacity-50">Googleに保存</button>
+            </div>
+            <button type="button" onclick="pullCloudData()" ${state.cloudBusy?'disabled':''} class="w-full mt-2 p-3 bg-white border-2 border-indigo-800 text-indigo-900 rounded-xl font-black text-sm disabled:opacity-50">クラウドから取り込む（消さずに統合）</button>
+            <div class="mt-3 rounded-xl bg-slate-100 border border-slate-400 p-3 text-sm font-bold text-slate-800">
+              ${state.cloudBusy ? '処理中…' : state.cloudEnabled ? '自動同期：有効（端末内の保存は継続）' : '自動同期：未開始（最初に「Googleに保存」を実行）'}
+              <div class="mt-1 text-xs">この端末の改訂：${state.cloudRevision}</div>
+            </div>
+            ${state.cloudStatus ? `<p class="mt-2 text-sm text-teal-950 font-bold border-2 border-teal-600 bg-teal-50 p-3 rounded-xl" role="status">${safeHtml(state.cloudStatus)}</p>` : ''}
+            ${state.cloudError ? errorPanel(state.cloudError,'クラウド同期エラー') : ''}
+            <p class="mt-3 text-xs font-bold text-red-800">同期キーはGitHubやチャットに貼らないでください。クラウドへ保存される情報には健康・既往歴データが含まれます。AI解析失敗後の下書き写真は「登録」するまで端末内のみです。</p>
+          </section>
+          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-600 mt-4">
+            <h2 class="text-lg font-black text-slate-900 mb-2">🛡 登録データ・写真の保護</h2>
+            <p class="text-sm text-slate-800 font-bold mb-2">${safeHtml(state.storageStatus)}</p>
+            ${state.storageError ? errorPanel(state.storageError,'保存機能の注意') : ''}
+            <p class="text-sm text-slate-700 leading-relaxed mb-3">写真・登録内容・服用履歴は、この端末にも保存されます。クラウド同期を有効にすると登録済みデータはGoogle側にも保存されますが、通信失敗時は手動で再送が必要です。</p>
+            <button type="button" onclick="downloadBackup()" class="w-full bg-teal-800 text-white rounded-xl p-3 border-2 border-teal-950 text-base font-black">バックアップをダウンロード</button>
+            <label class="mt-3 w-full flex justify-center cursor-pointer bg-white text-teal-900 border-2 border-teal-700 rounded-xl p-3 font-black text-sm"><input class="hidden" type="file" accept="application/json,.json" onchange="importBackup(event)">バックアップから復元</label>
+            <p class="text-xs font-bold text-red-800 mt-3">バックアップには写真・服用履歴・既往歴などの個人情報が含まれます。ファイルを安全に保管してください。</p>
+          </section>`;
         }
 
+        if (state.storageError && state.activeTab !== 'settings') {
+          html = `<div role="alert" class="mb-3 p-3 rounded-xl border-2 border-red-600 bg-red-50 text-red-950 font-bold">⚠ ${safeHtml(state.storageError)}</div>` + html;
+        }
         mainEl.innerHTML = html;
         if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
 
@@ -817,7 +1176,10 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", () => render());
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById('main-content').innerHTML = '<div class="p-5 bg-white rounded-xl border-2 border-teal-700 font-black text-slate-800">保存済みデータを確認しています…</div>';
+      initializeApp();
+    });
   </script>
 </body>
 </html>
