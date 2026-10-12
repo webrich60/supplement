@@ -282,6 +282,9 @@
         state.storageStatus = '保存先：ブラウザ内の代替保存';
         state.storageError = '保護ストレージを利用できません。データのバックアップを取得してください。';
       }
+      // 同期キーは写真/服用記録のバックアップとは別の保存先から復元する。
+      // localStorageが消えていてもIndexedDBに残っていれば復元できる。
+      await restoreCloudKey();
       dataReady = true;
       render();
     }
@@ -527,9 +530,42 @@
       return result;
     }
 
-    // v1.5: 同期キーはGitHubのソースやバックアップJSONに入れない。
-    const CLOUD_KEY_LOCAL = 'supplement_cloud_secret_v1';
-    state.cloudKey = safeLocalGet(CLOUD_KEY_LOCAL) || '';
+    // v1.5.1: 同期キーはバックアップJSONとGitHubに含めず、端末内の
+    // localStorage + IndexedDB にそれぞれ保存する。サイトデータ消去には耐えられない。
+    const CLOUD_KEY_LOCAL = 'supplement_cloud_secret_v1'; // 旧版との互換
+    const CLOUD_KEY_LOCAL_V2 = 'supplement_cloud_secret_v2';
+    const CLOUD_KEY_DB_ID = 'cloudSecret';
+    const VALID_CLOUD_KEY = /^[a-f0-9]{64}$/i;
+
+    function parseCloudKeyRecord(raw) {
+      if (!raw) return null;
+      try {
+        const record = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (record && VALID_CLOUD_KEY.test(String(record.key || ''))) {
+          return {key:String(record.key).trim(),savedAt:Number(record.savedAt)||0};
+        }
+      } catch(ignore) {}
+      return null;
+    }
+    function readLocalCloudKeyRecord() {
+      const latest = parseCloudKeyRecord(safeLocalGet(CLOUD_KEY_LOCAL_V2));
+      if (latest) return latest;
+      const old = (safeLocalGet(CLOUD_KEY_LOCAL) || '').trim();
+      return VALID_CLOUD_KEY.test(old) ? {key:old,savedAt:0} : null;
+    }
+    function dbSaveCloudKey(record) {
+      return new Promise((resolve,reject) => {
+        if (!storageDB) return reject(new Error('IndexedDBを開けません'));
+        const tx = storageDB.transaction('records','readwrite');
+        tx.objectStore('records').put(record,CLOUD_KEY_DB_ID);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error || new Error('IndexedDB保存失敗'));
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB保存中断'));
+      });
+    }
+
+    state.cloudKey = readLocalCloudKeyRecord()?.key || '';
+    state.cloudKeySaveStatus = state.cloudKey ? '以前の保存キーを確認中…' : '同期キーは未設定です';
     state.cloudEnabled = !!initial.cloudEnabled;
     state.cloudRevision = Number(initial.cloudRevision) || 0;
     state.cloudStatus = '';
@@ -539,9 +575,69 @@
     let cloudInFlight = false;
     let cloudLocalChanges = 0;
 
-    function rememberCloudKey() {
-      try {localStorage.setItem(CLOUD_KEY_LOCAL,state.cloudKey.trim());showToast('同期キーをこの端末に保存しました');}
-      catch(e) {state.cloudError='同期キーを保存できませんでした: '+e.message;}
+    async function restoreCloudKey() {
+      const local = readLocalCloudKeyRecord();
+      let indexed = null;
+      if (storageDB) {
+        try { indexed = parseCloudKeyRecord(await dbRead(CLOUD_KEY_DB_ID)); }
+        catch (e) { console.warn('同期キーのIndexedDB読込失敗（キーは表示しません）:',e?.name); }
+      }
+      // 日時付きの新しいキーを優先。旧版のキーは初回移行で読み込む。
+      const selected = indexed && (!local || indexed.savedAt >= local.savedAt) ? indexed : local;
+      state.cloudKey = selected?.key || '';
+      if (!selected) {
+        state.cloudKeySaveStatus = '未設定：64文字のキーを入力して保存してください';
+        return;
+      }
+      const where = indexed?.key === selected.key ? '端末の保護ストレージ' : 'ブラウザの保存領域';
+      state.cloudKeySaveStatus = '保存済みの同期キーを'+where+'から復元しました';
+      // IndexedDB内に有効なキーがなければ、旧版のlocalStorageからコピーして保護する。
+      if (storageDB && (!indexed || indexed.key !== selected.key)) {
+        try { await dbSaveCloudKey(selected); }
+        catch (e) { console.warn('同期キー移行に失敗（内容は表示しません）:',e?.name); }
+      }
+      // localStorageが消えていた場合は復元。再起動でも二重化を保つ。
+      if (!local || local.key !== selected.key) {
+        try {
+          localStorage.setItem(CLOUD_KEY_LOCAL_V2,JSON.stringify(selected));
+          localStorage.setItem(CLOUD_KEY_LOCAL,selected.key);
+        } catch(ignore) {}
+      }
+    }
+
+    async function rememberCloudKey() {
+      const input = document.getElementById('sync-secret');
+      const key = String(input ? input.value : state.cloudKey).trim();
+      if (!VALID_CLOUD_KEY.test(key)) {
+        state.cloudError = '同期キーはGASで発行した64文字の英数字（16進数）を入力してください。';
+        state.cloudKeySaveStatus = '保存していません（入力内容を確認してください）';
+        render();return;
+      }
+      state.cloudKey = key;
+      state.cloudError = '';
+      const record = {key,savedAt:Date.now()};
+      let localOk=false, dbOk=false;
+      try {
+        localStorage.setItem(CLOUD_KEY_LOCAL_V2,JSON.stringify(record));
+        localStorage.setItem(CLOUD_KEY_LOCAL,key);
+        localOk = readLocalCloudKeyRecord()?.key === key;
+      } catch(e) {console.warn('同期キーlocalStorage保存失敗:',e?.name);}
+      if (storageDB) {
+        try {
+          await dbSaveCloudKey(record);
+          dbOk = parseCloudKeyRecord(await dbRead(CLOUD_KEY_DB_ID))?.key === key;
+        } catch(e) {console.warn('同期キーIndexedDB保存失敗:',e?.name);}
+      }
+      if (localOk && dbOk) {
+        state.cloudKeySaveStatus = '保存確認済み：ブラウザ＋保護ストレージ（2か所）';
+        showToast('同期キーを2か所に保存しました');
+      } else if (localOk || dbOk) {
+        state.cloudKeySaveStatus = '一部のみ保存：スマホを閉じた後は再確認が必要';
+        state.cloudError = '同期キーを一方の保存領域にしか保存できませんでした。ブラウザのプライベートモード・サイトデータ自動削除設定をご確認ください。';
+      } else {
+        state.cloudKeySaveStatus = '保存失敗：この画面を閉じるとキーが消える可能性があります';
+        state.cloudError = 'このブラウザでは同期キーを端末に保存できません。Chromeの通常タブでGitHub PagesのURLを直接開いて再度お試しください。';
+      }
       render();
     }
     function cloudRequest(action,extra={}) {
@@ -1129,8 +1225,10 @@
             <h2 class="text-lg font-black text-teal-950 mb-2">☁ Google Drive・スプレッドシート同期</h2>
             <p class="text-sm text-slate-800 font-bold leading-relaxed mb-3">登録した写真は非公開のDriveへ、サプリ台帳・服用履歴・既往歴はスプレッドシートへ変更履歴を残します。初回はバックアップ後に手動保存してください。その後は登録・服用変更時に自動同期します。</p>
             <label for="sync-secret" class="block text-sm font-black text-slate-900 mb-1">同期キー（GASで setupCloudSync を実行して取得）</label>
-            <input id="sync-secret" type="password" autocomplete="off" placeholder="64文字の同期キー" value="${safeHtml(state.cloudKey)}" oninput="state.cloudKey=this.value" class="w-full p-3 rounded-xl border-2 border-slate-500 text-base text-slate-900 bg-white" />
+            <input id="sync-secret" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="64文字の同期キー" value="${safeHtml(state.cloudKey)}" oninput="state.cloudKey=this.value;state.cloudKeySaveStatus='入力内容は未保存です（下の保存ボタンを押してください）'" class="w-full p-3 rounded-xl border-2 border-slate-500 text-base text-slate-900 bg-white" />
             <button type="button" onclick="rememberCloudKey()" class="mt-2 w-full p-3 border-2 border-teal-700 text-teal-950 bg-teal-50 rounded-xl font-black text-sm">同期キーを端末に保存</button>
+            <p class="mt-2 p-3 rounded-xl bg-slate-100 text-slate-900 border border-slate-500 text-sm font-bold" role="status">🔐 ${safeHtml(state.cloudKeySaveStatus)}</p>
+            <p class="mt-1 text-xs font-bold text-slate-700">端末内の2か所に保存します。GitHubやデータバックアップにはキーを含めません。スマホのサイトデータが消える設定やプライベートモードでは保持されない場合があります。</p>
             <div class="grid grid-cols-2 gap-2 mt-3">
               <button type="button" onclick="checkCloudStatus()" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-slate-100 text-slate-900 border-2 border-slate-500 text-sm font-black disabled:opacity-50">クラウド状態を確認</button>
               <button type="button" onclick="pushCloudData(true)" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-teal-800 text-white border-2 border-teal-950 text-sm font-black disabled:opacity-50">Googleに保存</button>
