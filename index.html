@@ -48,24 +48,24 @@
   </div>
 
   <!-- 下部ナビゲーション -->
-  <nav class="fixed bottom-0 w-full bg-white border-t-2 border-slate-300 flex justify-around p-2 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.06)] pb-safe">
-    <button onclick="switchTab('log')" id="nav-log" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-400">
+  <nav class="fixed bottom-0 w-full bg-white border-t-2 border-slate-400 flex justify-around p-2 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.06)] pb-safe">
+    <button onclick="switchTab('log')" id="nav-log" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="calendar-days" class="w-6 h-6 mb-1"></i>
       <span class="text-[10px] font-black uppercase tracking-tighter">記録</span>
     </button>
-    <button onclick="switchTab('manage')" id="nav-manage" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-400">
+    <button onclick="switchTab('manage')" id="nav-manage" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="pill" class="w-6 h-6 mb-1"></i>
       <span class="text-[10px] font-black uppercase tracking-tighter">サプリ管理</span>
     </button>
-    <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-400">
+    <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="clipboard-list" class="w-6 h-6 mb-1"></i>
       <span class="text-[10px] font-black uppercase tracking-tighter">既往歴</span>
     </button>
-    <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-400">
+    <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="bot-message-square" class="w-6 h-6 mb-1"></i>
       <span class="text-[10px] font-black uppercase tracking-tighter">AI相談・分析</span>
     </button>
-    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-400">
+    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
       <i data-lucide="settings-2" class="w-6 h-6 mb-1"></i>
       <span class="text-[10px] font-black uppercase tracking-tighter">設定</span>
     </button>
@@ -496,14 +496,14 @@
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const todayStr = formatDate(new Date());
 
-      let html = `<div class="bg-white p-4 rounded-2xl shadow-md border-2 border-slate-300 mb-5 relative overflow-hidden">
+      let html = `<div class="bg-white p-4 rounded-2xl shadow-md border-2 border-slate-400 mb-5 relative overflow-hidden">
         <div class="flex justify-between items-center mb-3">
-          <button onclick="changeMonth(-1)" class="p-2 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-          <div class="font-black text-lg text-teal-900">${year}年 ${month + 1}月</div>
-          <button onclick="changeMonth(1)" class="p-2 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+          <button onclick="changeMonth(-1)" class="p-2 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+          <div class="font-black text-lg text-teal-950">${year}年 ${month + 1}月</div>
+          <button onclick="changeMonth(1)" class="p-2 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
         </div>
-        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-400 mb-1">
-          <div class="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-500">土</div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-600 mb-1">
+          <div class="text-red-600">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-600">土</div>
         </div>
         <div class="grid grid-cols-7 gap-1">`;
         
@@ -514,13 +514,13 @@
         const isSelected = dateStr === state.selectedDate;
         const progress = getDayProgress(dateStr);
         
-        let mColor = (state.logs[dateStr]?.morning && Object.keys(state.logs[dateStr].morning).length > 0) ? 'bg-amber-400' : 'bg-slate-200';
-        let aColor = (state.logs[dateStr]?.afternoon && Object.keys(state.logs[dateStr].afternoon).length > 0) ? 'bg-sky-400' : 'bg-slate-200';
-        let eColor = (state.logs[dateStr]?.evening && Object.keys(state.logs[dateStr].evening).length > 0) ? 'bg-indigo-400' : 'bg-slate-200';
+        let mColor = (state.logs[dateStr]?.morning && Object.keys(state.logs[dateStr].morning).length > 0) ? 'bg-amber-400' : 'bg-slate-300';
+        let aColor = (state.logs[dateStr]?.afternoon && Object.keys(state.logs[dateStr].afternoon).length > 0) ? 'bg-sky-400' : 'bg-slate-300';
+        let eColor = (state.logs[dateStr]?.evening && Object.keys(state.logs[dateStr].evening).length > 0) ? 'bg-indigo-400' : 'bg-slate-300';
 
-        let bgClass = isSelected ? 'bg-teal-700 text-white shadow-md transform scale-105 z-10 font-black ring-2 ring-teal-400' : (dateStr === todayStr ? 'bg-teal-50 text-teal-900 border-2 border-teal-400 font-bold' : 'hover:bg-slate-100 text-slate-700 font-medium');
+        let bgClass = isSelected ? 'bg-teal-700 text-white shadow-md transform scale-105 z-10 font-black ring-2 ring-teal-500' : (dateStr === todayStr ? 'bg-teal-50 text-teal-950 border-2 border-teal-500 font-bold' : 'hover:bg-slate-200 text-slate-800 font-medium');
 
-        html += `<div onclick="selectDate('${dateStr}')" class="flex flex-col items-center justify-center py-1.5 rounded-xl cursor-pointer transition-all ${bgClass}">
+        html += `<div onclick="selectDate('${dateStr}')" class="flex flex-col items-center justify-center py-1.5 rounded-xl cursor-pointer transition-all ${bgClass} border border-transparent ${!isSelected && dateStr !== todayStr ? 'border-slate-100 hover:border-slate-300' : ''}">
           <span class="text-xs leading-none">${i}</span>
           ${progress.hasPlan ? `<div class="flex gap-0.5 justify-center mt-1 h-1.5"><span class="w-1.5 h-1.5 rounded-full ${mColor}"></span><span class="w-1.5 h-1.5 rounded-full ${aColor}"></span><span class="w-1.5 h-1.5 rounded-full ${eColor}"></span></div>` : '<div class="h-1.5 mt-1"></div>'}
         </div>`;
@@ -536,26 +536,26 @@
 
         document.querySelectorAll('.nav-btn').forEach(btn => {
           btn.classList.remove('text-teal-800', 'font-black');
-          btn.classList.add('text-slate-400');
+          btn.classList.add('text-slate-500');
         });
         const activeBtn = document.getElementById(`nav-${state.activeTab}`);
         if(activeBtn) {
           activeBtn.classList.add('text-teal-800', 'font-black');
-          activeBtn.classList.remove('text-slate-400');
+          activeBtn.classList.remove('text-slate-500');
         }
 
         if (state.activeTab === 'log') {
           html += renderCalendarHTML();
           ensureDayLog(state.selectedDate);
           
-          html += `<div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-200">
-            <div class="flex justify-between border-b border-slate-100 pb-3 mb-3">
-              <h2 class="text-lg font-black text-slate-800">${state.selectedDate}の記録</h2>
-              <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-black">
-                <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm' : 'text-slate-500'}">全て</button>
-                <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm' : 'text-slate-500'}">朝</button>
-                <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm' : 'text-slate-500'}">昼</button>
-                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-white text-indigo-900 shadow-sm' : 'text-slate-500'}">夕</button>
+          html += `<div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-400">
+            <div class="flex justify-between border-b-2 border-slate-200 pb-3 mb-3">
+              <h2 class="text-lg font-black text-slate-900">${state.selectedDate}の記録</h2>
+              <div class="flex bg-slate-200 p-1 rounded-xl text-xs font-black border border-slate-300">
+                <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
+                <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
+                <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">昼</button>
+                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-white text-indigo-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
               </div>
             </div>`;
 
@@ -566,7 +566,7 @@
             timings.forEach(timing => {
               const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
               html += `<div class="mb-5">
-                <h3 class="font-black text-slate-800 text-sm mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-500"></i>${getTimingLabel(timing)}</h3>
+                <h3 class="font-black text-slate-800 text-sm mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-600"></i>${getTimingLabel(timing)}</h3>
                 <div class="space-y-2">`;
 
               state.supplements.forEach(supp => {
@@ -575,17 +575,17 @@
                 const isChecked = loggedAmount !== undefined && loggedAmount > 0;
                 const displayVal = isChecked ? loggedAmount : (plannedAmount > 0 ? plannedAmount : 1);
 
-                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-500 bg-teal-50/50' : 'border-slate-200'} flex items-center justify-between gap-2">
+                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-500 bg-teal-50/50' : 'border-slate-300'} flex items-center justify-between gap-2">
                   <div class="flex items-center gap-3">
-                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border"><i data-lucide="pill" class="w-5 h-5 text-slate-400"></i></div>`}
+                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
                     <div>
                       <p class="font-black text-sm text-slate-900">${supp.name}</p>
-                      <p class="text-[10px] font-bold text-slate-500">目安: ${plannedAmount}粒</p>
+                      <p class="text-[10px] font-bold text-slate-600">目安: ${plannedAmount}粒</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
-                    <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border rounded-lg outline-none text-sm" />
-                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2 rounded-xl font-black text-xs border flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white' : 'bg-white text-slate-700'}">
+                    <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border-2 border-slate-400 rounded-lg outline-none text-sm focus:border-teal-500 focus:bg-white" />
+                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2 rounded-xl font-black text-xs border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
                       <i data-lucide="${isChecked ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>${isChecked ? '済' : '飲む'}
                     </button>
                   </div>
@@ -598,88 +598,88 @@
 
         } else if (state.activeTab === 'manage') {
           html += `<div class="space-y-5">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${state.editingSuppId ? 'border-blue-400' : 'border-slate-300'}">
-              <h2 class="text-base font-black mb-3"><i data-lucide="${state.editingSuppId ? 'edit-3' : 'plus-circle'}" class="inline w-5 h-5 mr-1 ${state.editingSuppId ? 'text-blue-600' : 'text-teal-600'}"></i>${state.editingSuppId ? '編集' : '追加'}</h2>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${state.editingSuppId ? 'border-blue-500 bg-blue-50' : 'border-slate-400'}">
+              <h2 class="text-base font-black mb-3"><i data-lucide="${state.editingSuppId ? 'edit-3' : 'plus-circle'}" class="inline w-5 h-5 mr-1 ${state.editingSuppId ? 'text-blue-700' : 'text-teal-700'}"></i>${state.editingSuppId ? '編集' : '追加'}</h2>
               <form onsubmit="handleSaveSupplement(event)" class="space-y-4">
-                <input type="text" value="${state.manageForm.name}" oninput="state.manageForm.name=this.value" placeholder="サプリ・薬の名前" class="w-full p-3 border-2 rounded-xl font-bold text-sm outline-none" />
-                <div class="bg-slate-50 p-3 rounded-xl border">
-                  <label class="text-xs font-black block mb-2">いつ何粒飲むか</label>
+                <input type="text" value="${state.manageForm.name}" oninput="state.manageForm.name=this.value" placeholder="サプリ・薬の名前" class="w-full p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-teal-500" />
+                <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300">
+                  <label class="text-xs font-black block mb-2 text-slate-800">いつ何粒飲むか</label>
                   <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-white p-2 rounded-lg border text-center"><span class="text-[10px] block text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value" class="w-full text-center font-black outline-none border-b" /></div>
-                    <div class="bg-white p-2 rounded-lg border text-center"><span class="text-[10px] block text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value" class="w-full text-center font-black outline-none border-b" /></div>
-                    <div class="bg-white p-2 rounded-lg border text-center"><span class="text-[10px] block text-indigo-700">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value" class="w-full text-center font-black outline-none border-b" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-indigo-700">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-indigo-500 mt-1" /></div>
                   </div>
                 </div>
-                <div class="bg-slate-50 p-3 rounded-xl border flex flex-col gap-2">
+                <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2">
                   <div class="flex items-center gap-3">
-                    ${state.newSuppImage ? `<img src="${state.newSuppImage}" class="w-12 h-12 rounded-lg object-cover border-2 shadow-sm" />` : `<div class="w-12 h-12 rounded-lg bg-white flex items-center justify-center border-2 border-dashed"><i data-lucide="camera" class="text-slate-400"></i></div>`}
-                    <label class="cursor-pointer bg-white border border-teal-600 text-teal-800 font-black py-2 px-3 rounded-xl text-xs shadow-sm"><input type="file" accept="image/*" onchange="handleImageChange(event)" class="hidden" />写真を選択</label>
+                    ${state.newSuppImage ? `<img src="${state.newSuppImage}" class="w-12 h-12 rounded-lg object-cover border-2 border-slate-400 shadow-sm" />` : `<div class="w-12 h-12 rounded-lg bg-white flex items-center justify-center border-2 border-dashed border-slate-400"><i data-lucide="camera" class="text-slate-500"></i></div>`}
+                    <label class="cursor-pointer bg-white border-2 border-teal-600 text-teal-800 font-black py-2 px-3 rounded-xl text-xs shadow-sm hover:bg-teal-50"><input type="file" accept="image/*" onchange="handleImageChange(event)" class="hidden" />写真を選択</label>
                   </div>
-                  ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" class="bg-indigo-700 text-white font-black py-2 rounded-xl text-xs shadow-sm">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
+                  ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" class="bg-indigo-700 text-white font-black py-2 rounded-xl text-xs shadow-sm border-2 border-indigo-900">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
                 </div>
                 <div class="flex gap-2">
-                  <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md ${state.editingSuppId ? 'bg-blue-600' : 'bg-teal-700'}">${state.editingSuppId ? '保存' : '登録'}</button>
-                  ${state.editingSuppId ? `<button type="button" onclick="cancelEdit()" class="bg-slate-300 text-slate-700 font-black px-4 py-3 rounded-xl text-sm">中止</button>` : ''}
+                  <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 ${state.editingSuppId ? 'bg-blue-600 border-blue-800 hover:bg-blue-700' : 'bg-teal-700 border-teal-900 hover:bg-teal-800'}">${state.editingSuppId ? '保存' : '登録'}</button>
+                  ${state.editingSuppId ? `<button type="button" onclick="cancelEdit()" class="bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-xl text-sm border-2 border-slate-400 hover:bg-slate-400">中止</button>` : ''}
                 </div>
               </form>
             </div>
             
             <div class="space-y-2">
-              <h3 class="font-black text-slate-700 text-sm">登録済み (${state.supplements.length}件)</h3>
+              <h3 class="font-black text-slate-800 text-sm">登録済み (${state.supplements.length}件)</h3>
               ${state.supplements.map(supp => `
-                <div class="bg-white p-3 rounded-xl border flex items-center justify-between shadow-sm">
+                <div class="bg-white p-3 rounded-xl border-2 border-slate-300 flex items-center justify-between shadow-sm">
                   <div class="flex items-center gap-3">
-                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg border flex items-center justify-center"><i data-lucide="pill" class="text-slate-400"></i></div>`}
+                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg border-2 border-slate-300 flex items-center justify-center"><i data-lucide="pill" class="text-slate-500"></i></div>`}
                     <div>
-                      <p class="font-black text-sm">${supp.name}</p>
+                      <p class="font-black text-sm text-slate-900">${supp.name}</p>
                       <p class="text-[10px] font-bold text-slate-600">朝${supp.timingSchedule?.morning||0} 昼${supp.timingSchedule?.afternoon||0} 夕${supp.timingSchedule?.evening||0}</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-1">
-                    <button onclick="startEdit('${supp.id}')" class="text-blue-600 p-2"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                    <button onclick="handleDeleteSupplement('${supp.id}')" class="text-red-600 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="startEdit('${supp.id}')" class="text-blue-700 p-2 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                    <button onclick="handleDeleteSupplement('${supp.id}')" class="text-red-700 p-2 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                   </div>
                 </div>
               `).join('')}
             </div>
           </div>`;
         } else if (state.activeTab === 'history') {
-          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-amber-400">
+          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-amber-500">
             <h2 class="text-base font-black text-amber-950 mb-2 flex items-center gap-2"><i data-lucide="file-heart" class="text-amber-700"></i>既往歴・体質メモ</h2>
-            <textarea oninput="state.medicalHistory=this.value" placeholder="持病やアレルギーなどを入力" class="w-full h-48 p-3 border-2 border-slate-300 rounded-xl font-bold text-sm outline-none focus:border-amber-500">${state.medicalHistory}</textarea>
-            <button onclick="saveHistory()" class="w-full mt-3 bg-amber-600 text-white font-black py-3 rounded-xl text-sm shadow-md">保存する</button>
+            <textarea oninput="state.medicalHistory=this.value" placeholder="持病やアレルギーなどを入力" class="w-full h-48 p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-amber-500 bg-slate-50 focus:bg-white">${state.medicalHistory}</textarea>
+            <button onclick="saveHistory()" class="w-full mt-3 bg-amber-600 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 border-amber-800 hover:bg-amber-700">保存する</button>
           </div>`;
         } else if (state.activeTab === 'ai') {
           html += `<div class="space-y-5">
             <div class="bg-indigo-900 p-5 rounded-2xl shadow-md text-white border-2 border-indigo-950">
               <h2 class="text-base font-black mb-2 flex items-center gap-2"><i data-lucide="sparkles" class="text-yellow-300"></i>AI 週間分析レポート</h2>
-              <button onclick="handleGenerateAIReport()" ${state.aiLoading ? 'disabled' : ''} class="w-full bg-white text-indigo-950 font-black py-3 rounded-xl text-sm shadow-md">${state.aiLoading ? '分析中...' : 'レポート生成'}</button>
+              <button onclick="handleGenerateAIReport()" ${state.aiLoading ? 'disabled' : ''} class="w-full bg-white text-indigo-950 font-black py-3 rounded-xl text-sm shadow-md border-2 border-indigo-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">${state.aiLoading ? '分析中...' : 'レポート生成'}</button>
             </div>
-            ${state.aiReport ? `<div class="bg-white p-4 rounded-2xl border-2 border-indigo-400 font-bold whitespace-pre-wrap shadow-sm text-xs">${state.aiReport}</div>` : ''}
+            ${state.aiReport ? `<div class="bg-white p-4 rounded-2xl border-2 border-indigo-500 font-bold whitespace-pre-wrap shadow-sm text-xs leading-relaxed text-slate-800">${state.aiReport}</div>` : ''}
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-200 flex flex-col h-[400px]">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-300 flex flex-col h-[400px]">
               <h3 class="font-black text-indigo-950 mb-2 text-sm">ヘルスケアAIチャット</h3>
               <div class="flex-grow overflow-y-auto mb-3 space-y-2 pr-1" id="ai-chat-area">
                 ${state.aiChatHistory.map(msg => `
                   <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-[85%] p-3 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 border rounded-tl-none'}">${msg.text}</div>
+                    <div class="max-w-[85%] p-3 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-2 border-indigo-700' : 'bg-slate-100 text-slate-800 rounded-tl-none border-2 border-slate-300'}">${msg.text}</div>
                   </div>
                 `).join('')}
               </div>
               <div class="flex gap-2 mt-auto">
-                <input type="text" value="${state.aiQuestion}" oninput="state.aiQuestion=this.value" onkeydown="if(event.key==='Enter')handleAskAI()" placeholder="質問を入力..." class="flex-grow p-2.5 border-2 rounded-xl font-bold text-xs outline-none" />
-                <button onclick="handleAskAI()" ${state.isAskingAI ? 'disabled' : ''} class="bg-indigo-700 text-white px-4 rounded-xl shadow-sm"><i data-lucide="send" class="w-4 h-4"></i></button>
+                <input type="text" value="${state.aiQuestion}" oninput="state.aiQuestion=this.value" onkeydown="if(event.key==='Enter')handleAskAI()" placeholder="質問を入力..." class="flex-grow p-2.5 border-2 border-slate-400 rounded-xl font-bold text-xs outline-none focus:border-indigo-500 bg-slate-50 focus:bg-white" />
+                <button onclick="handleAskAI()" ${state.isAskingAI ? 'disabled' : ''} class="bg-indigo-700 text-white px-4 rounded-xl shadow-sm border-2 border-indigo-900 hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="send" class="w-4 h-4"></i></button>
               </div>
             </div>
           </div>`;
         } else if (state.activeTab === 'settings') {
-          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-300">
-            <h2 class="text-base font-black mb-3"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定</h2>
-            <div class="p-3 border bg-teal-50 rounded-xl">
-              <label class="font-black block mb-2 text-xs">GAS WebアプリURL</label>
-              <input type="text" value="${state.gasUrl}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-300 rounded-xl font-bold text-xs outline-none" />
+          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-400">
+            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定</h2>
+            <div class="p-3 border-2 border-teal-300 bg-teal-50 rounded-xl">
+              <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
+              <input type="text" value="${state.gasUrl}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
             </div>
-            <button onclick="saveSettings()" class="w-full mt-4 bg-slate-800 text-white font-black py-3 rounded-xl text-xs shadow-md">設定を保存する</button>
+            <button onclick="saveSettings()" class="w-full mt-4 bg-slate-800 text-white font-black py-3 rounded-xl text-xs shadow-md border-2 border-slate-900 hover:bg-slate-900">設定を保存する</button>
           </div>`;
         }
 
