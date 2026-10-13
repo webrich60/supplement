@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>毎日のサプリ＆おくすり管理</title>
-  <!-- v1.5.4 10/13復旧・服用確定と粒数の分離・夕方赤表示・同期結果表示 -->
+  <title>毎日のサプリ＆おくすり管理 v1.5.6</title>
+  <!-- v1.5.6 進捗3項目表示・夕方はカレンダー丸印のみ赤・データ処理変更なし -->
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -36,13 +36,7 @@
     .calendar-dot { height:9px; width:9px; border-radius:50%; display:inline-block; }
     .calendar-blank { background:#f1f5f9; min-height:51px; }
     .section-heading { font-size:16px; font-weight:900; color:#0f172a; }
-    /* v1.5.4: 朝・昼・夕の確定保存と服用変更・Google同期を改善 */
-    .timing-evening-heading { background:#fff1f2; border-left:5px solid #dc2626; padding:10px 12px; border-radius:10px; }
-    .timing-evening-card { border-color:#f87171 !important; background:#fff7f7; }
-    .timing-evening-checked { border-color:#dc2626 !important; background:#fff1f2 !important; }
-    .timing-evening-button { border-color:#dc2626 !important; color:#991b1b !important; }
-    .timing-evening-button.is-checked { background:#b91c1c !important; color:#fff !important; }
-    .timing-evening-save { background:#b91c1c !important; border-color:#991b1b !important; }
+    /* v1.5.6: 朝・昼・夕の服用カードと保存ボタンは同じ配色。夕の識別色はカレンダー点のみ。 */
     .timing-save-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; padding:12px 2px 0; border-top:2px solid #cbd5e1; margin-top:12px; }
     .timing-save-button { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-width:146px; min-height:46px; padding:10px 16px; border:2px solid #115e59; border-radius:12px; color:#fff; background:#0f766e; font-size:15px; font-weight:900; box-shadow:0 2px 5px rgba(15,118,110,.18); }
     .timing-save-button:disabled { opacity:.65; cursor:wait; }
@@ -1218,7 +1212,7 @@
       const percent = selectedCounts.scheduled ? Math.min(100,Math.round(selectedCounts.completed/selectedCounts.scheduled*100)) : 0;
       let html = `${state.recoveryStatus ? `<div role="status" class="mb-3 p-3 rounded-xl bg-emerald-50 border-2 border-emerald-700 text-emerald-950 text-sm font-black">${safeHtml(state.recoveryStatus)}</div>` : ''}<section class="bg-gradient-to-br from-teal-900 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg mb-4 border-2 border-teal-950">
         <div class="flex items-start justify-between gap-2">
-          <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック</div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
+          <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック <span class="ml-2 inline-flex rounded bg-white/15 border border-teal-200/60 px-1.5 py-0.5 text-[11px] tracking-wide" aria-label="アプリバージョン 1.5.6">v1.5.6</span></div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
           <button onclick="goToToday()" class="shrink-0 rounded-xl bg-white text-teal-900 px-3 py-2 border-2 border-white font-black text-xs shadow">今日に戻る</button>
         </div>
         <div class="grid grid-cols-3 gap-2 mt-3" aria-label="服用記録の集計">
@@ -1270,7 +1264,7 @@
       html += `</div><div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs font-bold text-slate-700">
         <span><span class="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full mr-1"></span>朝</span>
         <span><span class="inline-block w-2.5 h-2.5 bg-sky-400 rounded-full mr-1"></span>昼</span>
-        <span><span class="inline-block w-2.5 h-2.5 bg-red-500 rounded-full mr-1"></span><span class="text-red-800 font-black">夕</span></span>
+        <span><span class="inline-block w-2.5 h-2.5 bg-red-500 rounded-full mr-1"></span><span>夕</span></span>
         <span><span class="inline-block w-2.5 h-2.5 bg-slate-300 rounded-full mr-1"></span>未記録</span>
         <span class="text-teal-800">✓ 予定完了</span>
       </div></section>`;
@@ -1303,7 +1297,7 @@
                 <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
                 <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
                 <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">昼</button>
-                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-red-700 text-white shadow-sm border border-red-800' : 'bg-red-50 text-red-900 border border-red-300 hover:bg-red-100'}">夕</button>
+                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
               </div>
             </div>`;
 
@@ -1314,7 +1308,7 @@
             timings.forEach(timing => {
               const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
               html += `<div class="mb-5">
-                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2 ${timing === 'evening' ? 'timing-evening-heading' : ''}"><i data-lucide="${icon}" class="w-4 h-4 ${timing === 'evening' ? 'text-red-600' : 'text-slate-600'}"></i><span class="${timing === 'evening' ? 'text-red-800' : 'text-slate-900'}">${getTimingLabel(timing)}</span></h3>
+                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-600"></i><span class="text-slate-900">${getTimingLabel(timing)}</span></h3>
                 <div class="space-y-2">`;
 
               state.supplements.forEach(supp => {
@@ -1323,7 +1317,7 @@
                 const isChecked = loggedAmount !== undefined && loggedAmount > 0;
                 const displayVal = inputDose(state.selectedDate,timing,supp.id,plannedAmount);
 
-                html += `<div class="bg-white p-3 rounded-xl border-2 ${timing==='evening' ? (isChecked ? 'timing-evening-checked' : 'timing-evening-card') : (isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400')} flex items-center justify-between gap-2">
+                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400'} flex items-center justify-between gap-2">
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
                     <div>
@@ -1333,7 +1327,7 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border-2 border-slate-400 rounded-lg outline-none text-sm focus:border-teal-500 focus:bg-white" />
-                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${timing==='evening' ? ('timing-evening-button ' + (isChecked ? 'is-checked' : '')) : (isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100')}">
+                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
                       <i data-lucide="${isChecked ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>${isChecked ? '済' : '飲む'}
                     </button>
                   </div>
@@ -1345,7 +1339,7 @@
               html += `</div>
                 <div class="timing-save-footer">
                   ${saveStatus ? `<span role="status" aria-live="polite" class="timing-save-feedback ${saveStatus.type}">${safeHtml(saveStatus.text)}</span>` : `<span class="timing-save-feedback text-slate-600">${getTimingLabel(timing)}の記録を確認して保存</span>`}
-                  <button type="button" onclick="saveTimingRecords('${timing}')" ${isSaving ? 'disabled' : ''} class="timing-save-button ${timing==='evening'?'timing-evening-save':''}" aria-label="${getTimingLabel(timing)}の記録を保存する">
+                  <button type="button" onclick="saveTimingRecords('${timing}')" ${isSaving ? 'disabled' : ''} class="timing-save-button" aria-label="${getTimingLabel(timing)}の記録を保存する">
                     <i data-lucide="${isSaving ? 'loader-circle' : 'save'}" class="w-5 h-5"></i>${isSaving ? '保存中…' : '保存する'}
                   </button>
                 </div>
@@ -1365,7 +1359,7 @@
                   <div class="grid grid-cols-3 gap-2">
                     <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
                     <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-red-800">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-red-600 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-slate-800">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-teal-600 mt-1" /></div>
                   </div>
                 </div>
                 <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2">
