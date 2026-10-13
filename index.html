@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>毎日のサプリ＆おくすり管理</title>
-  <!-- v1.5.3 朝・昼・夕ごとの確認保存ボタンと保存成否表示 -->
+  <!-- v1.5.4 10/13復旧・服用確定と粒数の分離・夕方赤表示・同期結果表示 -->
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -36,7 +36,13 @@
     .calendar-dot { height:9px; width:9px; border-radius:50%; display:inline-block; }
     .calendar-blank { background:#f1f5f9; min-height:51px; }
     .section-heading { font-size:16px; font-weight:900; color:#0f172a; }
-    /* v1.5.3: 朝・昼・夕、それぞれの記録を右下の大きなボタンで確認保存 */
+    /* v1.5.4: 朝・昼・夕の確定保存と服用変更・Google同期を改善 */
+    .timing-evening-heading { background:#fff1f2; border-left:5px solid #dc2626; padding:10px 12px; border-radius:10px; }
+    .timing-evening-card { border-color:#f87171 !important; background:#fff7f7; }
+    .timing-evening-checked { border-color:#dc2626 !important; background:#fff1f2 !important; }
+    .timing-evening-button { border-color:#dc2626 !important; color:#991b1b !important; }
+    .timing-evening-button.is-checked { background:#b91c1c !important; color:#fff !important; }
+    .timing-evening-save { background:#b91c1c !important; border-color:#991b1b !important; }
     .timing-save-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; padding:12px 2px 0; border-top:2px solid #cbd5e1; margin-top:12px; }
     .timing-save-button { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-width:146px; min-height:46px; padding:10px 16px; border:2px solid #115e59; border-radius:12px; color:#fff; background:#0f766e; font-size:15px; font-weight:900; box-shadow:0 2px 5px rgba(15,118,110,.18); }
     .timing-save-button:disabled { opacity:.65; cursor:wait; }
@@ -212,7 +218,7 @@
       connectionResult:'',checkingConnection:false,aiReport:'',aiChatHistory:[],
       aiQuestion:'',isAskingAI:false,
       storageStatus:'保存先を確認中', storageError:'',
-      timingSaveStatus:{}, timingSaving:{}
+      timingSaveStatus:{}, timingSaving:{}, pendingAmounts:{}, archivedCloudLogs:{}, recoveryStatus:'', recoveryError:'', recoveryBusy:false
     };
 
     function applySnapshot(snapshot, restoreDraft=true) {
@@ -225,6 +231,7 @@
       state.gasUrl = typeof snapshot.gasUrl === 'string' ? snapshot.gasUrl : '';
       state.cloudRevision = Number(snapshot.cloudRevision) || 0;
       state.cloudEnabled = !!snapshot.cloudEnabled;
+      state.archivedCloudLogs = normalizeLogs(snapshot.archivedCloudLogs || {});
       if (restoreDraft) {
         state.manageForm = {...{name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'}, ...(snapshot.draft?.manageForm || {})};
         state.newSuppImage = snapshot.draft?.image || null;
@@ -239,6 +246,7 @@
         logs:JSON.parse(JSON.stringify(state.logs)),
         medicalHistory:state.medicalHistory, gasUrl:state.gasUrl,
         cloudRevision:state.cloudRevision || 0, cloudEnabled:!!state.cloudEnabled,
+        archivedCloudLogs:state.archivedCloudLogs || {},
         draft:{manageForm:{...state.manageForm}, image:state.newSuppImage, editingSuppId:state.editingSuppId}
       };
     }
@@ -430,17 +438,35 @@
     function clearTimingSaveStatus(date,timing) {
       delete state.timingSaveStatus[timingSaveKey(date,timing)];
     }
+    function pendingKey(date,timing,id) {return date+'|'+timing+'|'+id;}
+    function inputDose(date,timing,suppId,planned) {
+      const key=pendingKey(date,timing,suppId);
+      const p=state.pendingAmounts[key];
+      if(Number.isInteger(p)) return p;
+      const actual=state.logs[date]?.[timing]?.[suppId];
+      return Number(actual)>0 ? Number(actual) : (Number(planned)>0?Number(planned):1);
+    }
+    function hasUnconfirmedDoses(date,timing) {
+      return Object.keys(state.pendingAmounts).some(key=>key.startsWith(date+'|'+timing+'|'));
+    }
+
     // 既存の自動保存はデータ消失防止のため維持。右下の保存は「確認保存」です。
     // Googleへの保存が失敗した場合、端末保存とクラウド未同期を明確に区別します。
     async function saveTimingRecords(timing) {
       if (!['morning','afternoon','evening'].includes(timing)) return;
       const date = state.selectedDate;
+      ensureDayLog(date);
       const key = timingSaveKey(date,timing);
       if (state.timingSaving[key]) return;
       state.timingSaving[key] = true;
       state.timingSaveStatus[key] = {type:'saving',text:'保存処理中…'};
       render();
       try {
+        if (hasUnconfirmedDoses(date,timing)) {
+          state.timingSaveStatus[key]={type:'warning',text:'粒数を入力した項目は「飲む」で確定してください。入力だけでは服用済みになりません。'};
+          showToast('先に「飲む」を押して服用を確定してください');
+          return;
+        }
         const saved = await saveData();
         if (!saved) throw new Error('端末への保存が完了しませんでした。設定からバックアップを取得し、保存領域を確認してください。');
         let type = 'saved';
@@ -458,6 +484,9 @@
         } else if (state.cloudEnabled) {
           type = 'warning';
           resultText = '端末に保存しました（Google接続設定を確認してください）';
+        } else {
+          type = 'warning';
+          resultText = '保存しました（端末内のみ／Google同期は未開始）';
         }
         state.timingSaveStatus[key] = {type,text:resultText};
         showToast(type === 'saved' ? '保存しました' : resultText);
@@ -476,6 +505,8 @@
       if (!supp) return;
 
       const plannedAmount = supp.timingSchedule[timing] || 0;
+      const date=state.selectedDate;
+      const pending=pendingKey(date,timing,suppId);
       const currentLog = state.logs[state.selectedDate][timing][suppId];
       let newAmount;
 
@@ -484,39 +515,43 @@
         newAmount = 0;
         showToast(`「${safeHtml(supp.name)}」を未記録に戻しました`);
       } else {
-        newAmount = plannedAmount > 0 ? plannedAmount : 1;
+        newAmount = inputDose(date,timing,suppId,plannedAmount);
+        if (newAmount <= 0) { showToast('服用を記録するには1粒以上を指定してください'); return; }
         state.logs[state.selectedDate][timing][suppId] = newAmount;
         showToast(`「${safeHtml(supp.name)}」を ${newAmount}粒 記録しました`);
       }
 
+      delete state.pendingAmounts[pending];
       clearTimingSaveStatus(state.selectedDate,timing);
       const localSaved = await saveData();
       render();
       if (!localSaved) { showToast('服用記録を保存できませんでした'); return; }
       scheduleCloudUpload();
 
-      if (state.gasUrl) {
-        try {
-          fetch(state.gasUrl.trim().replace(/\/edit.*$/, '/exec'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'log', cloudKey:state.cloudKey.trim(), date: state.selectedDate, timing: timing,
-              timingLabel: getTimingLabel(timing), suppId: supp.id, suppName: supp.name, amount: newAmount, unit: '粒'
-            })
-          });
-        } catch (e) { console.error('GAS送信失敗:', e); }
-      }
+      // 服用履歴のGoogle書込はcloudPushで応答を確認する（未検証のfetch送信はしない）。
     }
 
     async function handleCustomDosageChange(suppId, timing, val) {
-      ensureDayLog(state.selectedDate);
-      const amount = Math.max(0, Math.round(Number(val) || 0));
-      if (amount === 0) delete state.logs[state.selectedDate][timing][suppId];
-      else state.logs[state.selectedDate][timing][suppId] = amount;
-      clearTimingSaveStatus(state.selectedDate,timing);
-      const ok = await saveData();
-      if (!ok) showToast('粒数を保存できませんでした');
+      const date=state.selectedDate;
+      ensureDayLog(date);
+      const amount = Math.max(0,Math.round(Number(val)||0));
+      const key=pendingKey(date,timing,suppId);
+      clearTimingSaveStatus(date,timing);
+      const alreadyChecked=Number(state.logs[date][timing][suppId])>0;
+      if(!alreadyChecked) {
+        // 粒数だけの変更では「飲んだ」にしない。「飲む」で服用確定。
+        state.pendingAmounts[key]=amount;
+        render();
+        return;
+      }
+      if(amount===0){
+        delete state.logs[date][timing][suppId];
+      } else {
+        state.logs[date][timing][suppId]=amount;
+      }
+      delete state.pendingAmounts[key];
+      const ok=await saveData();
+      if(!ok) showToast('粒数を保存できませんでした');
       else scheduleCloudUpload();
       render();
     }
@@ -625,11 +660,13 @@
     state.cloudKeySaveStatus = state.cloudKey ? '以前の保存キーを確認中…' : '同期キーは未設定です';
     state.cloudEnabled = !!initial.cloudEnabled;
     state.cloudRevision = Number(initial.cloudRevision) || 0;
+    state.archivedCloudLogs = normalizeLogs(initial.archivedCloudLogs || {});
     state.cloudStatus = '';
     state.cloudError = '';
     state.cloudBusy = false;
     let cloudSyncTimer = null;
     let cloudInFlight = false;
+    let cloudSyncWaiters = [];
     let cloudLocalChanges = 0;
 
     async function restoreCloudKey() {
@@ -718,9 +755,11 @@
     }
     async function pushCloudData(manual=true) {
       if(cloudInFlight) {
-        if(manual) showToast('同期処理中です。完了をお待ちください');
-        else {clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),2500);}
-        return false;
+        // 実行中の書き込みが完了してから、この時点の最新データを再送する。
+        // 同時実行という理由だけで「Google保存失敗」と誤表示しない。
+        await new Promise(resolve => cloudSyncWaiters.push(resolve));
+        clearTimeout(cloudSyncTimer);
+        return pushCloudData(manual);
       }
       cloudInFlight=true;
       state.cloudBusy=true;state.cloudError='';if(manual)state.cloudStatus='';
@@ -730,7 +769,9 @@
         await saveQueue;
         // 下書きは端末のみ。登録済みの写真・服用記録・既往歴をGoogleに保存する。
         const data=makeSnapshot();
-        const r=await cloudRequest('cloudPush',{expectedRevision:state.cloudRevision,snapshot:{supplements:data.supplements,logs:data.logs,medicalHistory:data.medicalHistory}});
+        const combinedLogs=normalizeLogs(data.archivedCloudLogs || {});
+        for(const [date,day] of Object.entries(data.logs || {})) combinedLogs[date] = day;
+        const r=await cloudRequest('cloudPush',{expectedRevision:state.cloudRevision,snapshot:{supplements:data.supplements,logs:combinedLogs,medicalHistory:data.medicalHistory}});
         state.cloudRevision=Number(r.revision);
         state.cloudEnabled=true;
         try {localStorage.setItem(CLOUD_KEY_LOCAL,state.cloudKey.trim());} catch(ignore) {}
@@ -743,7 +784,9 @@
         return false;
       } finally {
         state.cloudBusy=false;cloudInFlight=false;render();
-        if(!state.cloudError && seq!==cloudLocalChanges) {
+        const waiters=cloudSyncWaiters.splice(0);
+        waiters.forEach(resolve=>resolve());
+        if(!state.cloudError && seq!==cloudLocalChanges && waiters.length===0) {
           clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),1800);
         }
       }
@@ -810,6 +853,99 @@
         state.cloudStatus=`クラウドから取り込み完了：追加${result.added}件、内容違い${result.conflicts}件（内容違いは別名で両方保持）。取り込み前データをダウンロード済み。`;
       } catch(e){state.cloudError=explainError(e);}
       finally{state.cloudBusy=false;render();}
+    }
+
+    // 2026/10/13 専用復旧。古い服用履歴をUIへ戻さず、
+    // クラウドの過去ログは別枠で保持し、同期時も誤って消さない。
+    const RECOVER_DATE='2026-10-13';
+    function snapshotWithTodayOnly_(remote) {
+      if(!remote || !Array.isArray(remote.supplements) || !remote.logs || typeof remote.logs!=='object')
+        throw new Error('復旧ファイルの形式が正しくありません。');
+      if(!remote.logs[RECOVER_DATE]) throw new Error('2026年10月13日の服用記録が見つかりません。');
+      const clean={morning:{},afternoon:{},evening:{}};
+      for(const t of ['morning','afternoon','evening']) {
+        for(const [id,amount] of Object.entries(remote.logs[RECOVER_DATE][t]||{})) {
+          if(Number(amount)>0) clean[t][id]=Number(amount);
+        }
+      }
+      return {supplements:normalizeSupplements(remote.supplements),logs:{[RECOVER_DATE]:clean}};
+    }
+    function mergeRecovery13_(local,remote) {
+      const clipped=snapshotWithTodayOnly_(remote);
+      const recovered={...local, supplements:normalizeSupplements(local.supplements),logs:normalizeLogs(local.logs)};
+      const byId=new Map(recovered.supplements.map(s=>[s.id,s]));
+      let added=0,photos=0,logged=0;
+      for(const s of clipped.supplements) {
+        if(!byId.has(s.id)) {recovered.supplements.push(s);byId.set(s.id,s);added++;}
+        else if(!byId.get(s.id).image && s.image) {byId.get(s.id).image=s.image;photos++;}
+      }
+      recovered.logs[RECOVER_DATE] ||= {morning:{},afternoon:{},evening:{}};
+      for(const t of ['morning','afternoon','evening']) {
+        recovered.logs[RECOVER_DATE][t] ||= {};
+        for(const [id,amount] of Object.entries(clipped.logs[RECOVER_DATE][t])) {
+          if(!byId.has(id))continue;
+          if(!(Number(recovered.logs[RECOVER_DATE][t][id])>0)){
+            recovered.logs[RECOVER_DATE][t][id]=amount;
+            logged++;
+          }
+        }
+      }
+      return {recovered,added,photos,logged};
+    }
+    async function applyRecovery13_(remote,cloudVersion=false) {
+      if(state.recoveryBusy) return;
+      if(!confirm('10月13日の服用記録と登録済みサプリだけを復旧します。現在の記録は消しません。続けますか？'))return;
+      state.recoveryBusy=true;state.recoveryStatus='';state.recoveryError='';render();
+      const original=makeSnapshot();
+      try {
+        // ダウンロードが拒否されても、端末内の元データは維持する。
+        downloadBackup();
+        const merged=mergeRecovery13_(original,remote);
+        if(cloudVersion) {
+          // 過去分はUIに復元しないが、今後のクラウド保存で取消扱いにならないよう保持。
+          const archived=normalizeLogs(original.archivedCloudLogs || {});
+          for(const [date,day] of Object.entries(remote.logs||{})) {
+            if(date !== RECOVER_DATE && !archived[date] && !merged.recovered.logs[date]) archived[date]=day;
+          }
+          merged.recovered.archivedCloudLogs=archived;
+          merged.recovered.cloudRevision=Number(remote.revision)||state.cloudRevision;
+          merged.recovered.cloudEnabled=true;
+        }
+        applySnapshot(merged.recovered,false);
+        const saved=await saveData();
+        if(!saved) {applySnapshot(original,false);throw new Error('端末に保存できなかったため、復旧を中止しました。');}
+        state.selectedDate=RECOVER_DATE;
+        state.calendarDate=new Date(2026,9,13);
+        state.activeTab='log';
+        const result='10月13日分を復旧しました（登録追加'+merged.added+'件／服用記録追加'+merged.logged+'件／写真補完'+merged.photos+'件）。端末への保存を確認済み。';
+        state.recoveryStatus=result;
+        showToast('10月13日分を復旧しました');
+        // ここで勝手にクラウドへ上書きしない（他端末との差異を確認できる）。
+      } catch(e) {state.recoveryError=explainError(e);}
+      finally {state.recoveryBusy=false;render();}
+    }
+    async function restore13FromCloud() {
+      if(state.recoveryBusy)return;
+      if(cloudInFlight || state.cloudBusy) {
+        state.recoveryError='Googleへの保存処理中です。完了後にもう一度復旧してください。';render();return;
+      }
+      clearTimeout(cloudSyncTimer);
+      try {
+        const result=await cloudRequest('cloudPull');
+        if(!result.hasCloudData)throw new Error('Google側にはデータがありません。');
+        await applyRecovery13_({...result.snapshot,revision:result.revision},true);
+      } catch(e){state.recoveryError='クラウドから取得できませんでした：'+explainError(e);render();}
+    }
+    async function restore13FromFile(event) {
+      const file=event.target.files&&event.target.files[0];
+      if(!file)return;
+      try {
+        if(file.size>10*1024*1024)throw new Error('復旧ファイルが大きすぎます。');
+        const data=JSON.parse(await file.text());
+        await applyRecovery13_(data,false);
+        if(!state.recoveryError)state.recoveryStatus += ' 写真が未表示の場合は、Google接続後に「Googleから10月13日分だけ復旧」を実行してください。';
+      } catch(e){state.recoveryError=explainError(e);}
+      finally {event.target.value='';render();}
     }
 
     function errorPanel(message, heading='AI通信エラー') {
@@ -1078,7 +1214,7 @@
       const selectedCounts = getDayCounts(state.selectedDate);
       const isToday = state.selectedDate === todayStr;
       const percent = selectedCounts.scheduled ? Math.min(100,Math.round(selectedCounts.completed/selectedCounts.scheduled*100)) : 0;
-      let html = `<section class="bg-gradient-to-br from-teal-900 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg mb-4 border-2 border-teal-950">
+      let html = `${state.recoveryStatus ? `<div role="status" class="mb-3 p-3 rounded-xl bg-emerald-50 border-2 border-emerald-700 text-emerald-950 text-sm font-black">${safeHtml(state.recoveryStatus)}</div>` : ''}<section class="bg-gradient-to-br from-teal-900 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg mb-4 border-2 border-teal-950">
         <div class="flex items-start justify-between gap-2">
           <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック</div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
           <button onclick="goToToday()" class="shrink-0 rounded-xl bg-white text-teal-900 px-3 py-2 border-2 border-white font-black text-xs shadow">今日に戻る</button>
@@ -1147,7 +1283,7 @@
                 <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
                 <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
                 <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">昼</button>
-                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-red-50 text-red-900 shadow-sm border border-red-500' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
+                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-red-700 text-white shadow-sm border border-red-800' : 'bg-red-50 text-red-900 border border-red-300 hover:bg-red-100'}">夕</button>
               </div>
             </div>`;
 
@@ -1158,16 +1294,16 @@
             timings.forEach(timing => {
               const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
               html += `<div class="mb-5">
-                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 ${timing === 'evening' ? 'text-red-600' : 'text-slate-600'}"></i><span class="${timing === 'evening' ? 'text-red-800' : 'text-slate-900'}">${getTimingLabel(timing)}</span></h3>
+                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2 ${timing === 'evening' ? 'timing-evening-heading' : ''}"><i data-lucide="${icon}" class="w-4 h-4 ${timing === 'evening' ? 'text-red-600' : 'text-slate-600'}"></i><span class="${timing === 'evening' ? 'text-red-800' : 'text-slate-900'}">${getTimingLabel(timing)}</span></h3>
                 <div class="space-y-2">`;
 
               state.supplements.forEach(supp => {
                 const plannedAmount = supp.timingSchedule[timing] || 0;
                 const loggedAmount = state.logs[state.selectedDate]?.[timing]?.[supp.id];
                 const isChecked = loggedAmount !== undefined && loggedAmount > 0;
-                const displayVal = isChecked ? loggedAmount : (plannedAmount > 0 ? plannedAmount : 1);
+                const displayVal = inputDose(state.selectedDate,timing,supp.id,plannedAmount);
 
-                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400'} flex items-center justify-between gap-2">
+                html += `<div class="bg-white p-3 rounded-xl border-2 ${timing==='evening' ? (isChecked ? 'timing-evening-checked' : 'timing-evening-card') : (isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400')} flex items-center justify-between gap-2">
                   <div class="flex items-center gap-3">
                     ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
                     <div>
@@ -1177,7 +1313,7 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border-2 border-slate-400 rounded-lg outline-none text-sm focus:border-teal-500 focus:bg-white" />
-                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
+                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${timing==='evening' ? ('timing-evening-button ' + (isChecked ? 'is-checked' : '')) : (isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100')}">
                       <i data-lucide="${isChecked ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>${isChecked ? '済' : '飲む'}
                     </button>
                   </div>
@@ -1189,7 +1325,7 @@
               html += `</div>
                 <div class="timing-save-footer">
                   ${saveStatus ? `<span role="status" aria-live="polite" class="timing-save-feedback ${saveStatus.type}">${safeHtml(saveStatus.text)}</span>` : `<span class="timing-save-feedback text-slate-600">${getTimingLabel(timing)}の記録を確認して保存</span>`}
-                  <button type="button" onclick="saveTimingRecords('${timing}')" ${isSaving ? 'disabled' : ''} class="timing-save-button" aria-label="${getTimingLabel(timing)}の記録を保存する">
+                  <button type="button" onclick="saveTimingRecords('${timing}')" ${isSaving ? 'disabled' : ''} class="timing-save-button ${timing==='evening'?'timing-evening-save':''}" aria-label="${getTimingLabel(timing)}の記録を保存する">
                     <i data-lucide="${isSaving ? 'loader-circle' : 'save'}" class="w-5 h-5"></i>${isSaving ? '保存中…' : '保存する'}
                   </button>
                 </div>
@@ -1310,6 +1446,15 @@
             ${state.cloudStatus ? `<p class="mt-2 text-sm text-teal-950 font-bold border-2 border-teal-600 bg-teal-50 p-3 rounded-xl" role="status">${safeHtml(state.cloudStatus)}</p>` : ''}
             ${state.cloudError ? errorPanel(state.cloudError,'クラウド同期エラー') : ''}
             <p class="mt-3 text-xs font-bold text-red-800">同期キーはGitHubやチャットに貼らないでください。クラウドへ保存される情報には健康・既往歴データが含まれます。AI解析失敗後の下書き写真は「登録」するまで端末内のみです。</p>
+          </section>
+          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-amber-600 mt-4">
+            <h2 class="text-lg font-black text-amber-950 mb-2">📅 2026年10月13日の記録だけを復旧</h2>
+            <p class="text-sm text-slate-800 font-bold leading-relaxed mb-3">10月13日分の服用記録と登録済みサプリを追加復旧します。12日以前の履歴はアプリへ取り込みません。いまある登録・記録は消しません。復旧前にバックアップを自動ダウンロードします。</p>
+            <button type="button" onclick="restore13FromCloud()" ${state.recoveryBusy?'disabled':''} class="w-full bg-amber-600 text-white rounded-xl p-3 border-2 border-amber-900 text-base font-black disabled:opacity-50">Googleから10月13日分だけ復旧</button>
+            <label class="mt-3 w-full flex justify-center cursor-pointer bg-white text-amber-950 border-2 border-amber-700 rounded-xl p-3 font-black text-sm"><input class="hidden" type="file" accept="application/json,.json" onchange="restore13FromFile(event)">通信エラー時：復旧用JSONファイルを選ぶ</label>
+            <p class="text-xs font-bold text-slate-700 mt-2">復旧用JSONは配布ZIP内にあります。GitHubにアップロードしないでください。</p>
+            ${state.recoveryStatus ? `<p role="status" class="mt-3 p-3 bg-emerald-50 border-2 border-emerald-700 rounded-xl text-emerald-950 font-black text-sm">${safeHtml(state.recoveryStatus)}</p>` : ''}
+            ${state.recoveryError ? errorPanel(state.recoveryError,'復旧エラー') : ''}
           </section>
           <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-600 mt-4">
             <h2 class="text-lg font-black text-slate-900 mb-2">🛡 登録データ・写真の保護</h2>
