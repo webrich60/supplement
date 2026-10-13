@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>毎日のサプリ＆おくすり管理</title>
-  <!-- v1.4 写真の下書き保存 / IndexedDB移行 / バックアップ・復元 -->
+  <!-- v1.5.3 朝・昼・夕ごとの確認保存ボタンと保存成否表示 -->
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -33,9 +33,19 @@
     .calendar-day.is-selected { background:#115e59; color:#fff; border-color:#042f2e; }
     .calendar-day.is-complete:not(.is-selected) { background:#ecfdf5; }
     .calendar-day:focus-visible { outline:3px solid #0284c7; outline-offset:-3px; }
-    .calendar-dot { height:7px; width:7px; border-radius:50%; display:inline-block; }
+    .calendar-dot { height:9px; width:9px; border-radius:50%; display:inline-block; }
     .calendar-blank { background:#f1f5f9; min-height:51px; }
     .section-heading { font-size:16px; font-weight:900; color:#0f172a; }
+    /* v1.5.3: 朝・昼・夕、それぞれの記録を右下の大きなボタンで確認保存 */
+    .timing-save-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; padding:12px 2px 0; border-top:2px solid #cbd5e1; margin-top:12px; }
+    .timing-save-button { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-width:146px; min-height:46px; padding:10px 16px; border:2px solid #115e59; border-radius:12px; color:#fff; background:#0f766e; font-size:15px; font-weight:900; box-shadow:0 2px 5px rgba(15,118,110,.18); }
+    .timing-save-button:disabled { opacity:.65; cursor:wait; }
+    .timing-save-feedback { font-size:13px; line-height:1.45; font-weight:800; min-width:0; flex:1; text-align:right; }
+    .timing-save-feedback.saved { color:#065f46; }
+    .timing-save-feedback.warning { color:#9a3412; }
+    .timing-save-feedback.error { color:#b91c1c; }
+    .timing-save-feedback.saving { color:#475569; }
+    @media(max-width:430px) { .timing-save-footer { flex-direction:column; align-items:stretch; } .timing-save-feedback { text-align:left; } .timing-save-button { align-self:flex-end; min-width:160px; } }
     @media(min-width:640px) { .calendar-day,.calendar-blank { min-height:66px; } }
     @media(max-width:370px) { .calendar-day,.calendar-blank { min-height:45px; } .calendar-day { font-size:13px; } }
   </style>
@@ -201,7 +211,8 @@
       isAnalyzing:false, aiLoading:false, aiError:'', photoError:'',
       connectionResult:'',checkingConnection:false,aiReport:'',aiChatHistory:[],
       aiQuestion:'',isAskingAI:false,
-      storageStatus:'保存先を確認中', storageError:''
+      storageStatus:'保存先を確認中', storageError:'',
+      timingSaveStatus:{}, timingSaving:{}
     };
 
     function applySnapshot(snapshot, restoreDraft=true) {
@@ -415,6 +426,50 @@
       if (!state.logs[dateStr].evening) state.logs[dateStr].evening = {};
     }
 
+    function timingSaveKey(date,timing) { return date + ':' + timing; }
+    function clearTimingSaveStatus(date,timing) {
+      delete state.timingSaveStatus[timingSaveKey(date,timing)];
+    }
+    // 既存の自動保存はデータ消失防止のため維持。右下の保存は「確認保存」です。
+    // Googleへの保存が失敗した場合、端末保存とクラウド未同期を明確に区別します。
+    async function saveTimingRecords(timing) {
+      if (!['morning','afternoon','evening'].includes(timing)) return;
+      const date = state.selectedDate;
+      const key = timingSaveKey(date,timing);
+      if (state.timingSaving[key]) return;
+      state.timingSaving[key] = true;
+      state.timingSaveStatus[key] = {type:'saving',text:'保存処理中…'};
+      render();
+      try {
+        const saved = await saveData();
+        if (!saved) throw new Error('端末への保存が完了しませんでした。設定からバックアップを取得し、保存領域を確認してください。');
+        let type = 'saved';
+        let resultText = '保存しました（端末内）';
+        if (state.cloudEnabled && state.gasUrl && state.cloudKey) {
+          // 自動同期予定があれば、明示的な保存で直ちに送信する。
+          clearTimeout(cloudSyncTimer);
+          const cloudOK = await pushCloudData(false);
+          if (cloudOK === true) {
+            resultText = '保存しました（端末・Google同期完了）';
+          } else {
+            type = 'warning';
+            resultText = '端末に保存しました（Google同期は未完了）';
+          }
+        } else if (state.cloudEnabled) {
+          type = 'warning';
+          resultText = '端末に保存しました（Google接続設定を確認してください）';
+        }
+        state.timingSaveStatus[key] = {type,text:resultText};
+        showToast(type === 'saved' ? '保存しました' : resultText);
+      } catch (error) {
+        state.timingSaveStatus[key] = {type:'error',text:'保存できませんでした：' + (error?.message || String(error))};
+        showToast('保存できませんでした');
+      } finally {
+        delete state.timingSaving[key];
+        render();
+      }
+    }
+
     async function handleToggleLog(suppId, timing) {
       ensureDayLog(state.selectedDate);
       const supp = state.supplements.find(s => s.id === suppId);
@@ -434,6 +489,7 @@
         showToast(`「${safeHtml(supp.name)}」を ${newAmount}粒 記録しました`);
       }
 
+      clearTimingSaveStatus(state.selectedDate,timing);
       const localSaved = await saveData();
       render();
       if (!localSaved) { showToast('服用記録を保存できませんでした'); return; }
@@ -458,6 +514,7 @@
       const amount = Math.max(0, Math.round(Number(val) || 0));
       if (amount === 0) delete state.logs[state.selectedDate][timing][suppId];
       else state.logs[state.selectedDate][timing][suppId] = amount;
+      clearTimingSaveStatus(state.selectedDate,timing);
       const ok = await saveData();
       if (!ok) showToast('粒数を保存できませんでした');
       else scheduleCloudUpload();
@@ -663,7 +720,7 @@
       if(cloudInFlight) {
         if(manual) showToast('同期処理中です。完了をお待ちください');
         else {clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),2500);}
-        return;
+        return false;
       }
       cloudInFlight=true;
       state.cloudBusy=true;state.cloudError='';if(manual)state.cloudStatus='';
@@ -680,8 +737,10 @@
         await saveData();
         state.cloudStatus=`Google保存成功：改訂${r.revision}（画像${r.photoUploads}件、登録変更${r.supplementChanges}件、服用変更${r.changedLogs}件）`;
         if(manual)showToast('Google Drive・スプレッドシートへ保存しました');
+        return true;
       } catch(e) {
         state.cloudError='端末内のデータは残っています。Googleへの保存は未完了です。'+explainError(e);
+        return false;
       } finally {
         state.cloudBusy=false;cloudInFlight=false;render();
         if(!state.cloudError && seq!==cloudLocalChanges) {
@@ -1044,7 +1103,7 @@
         const done = counts.scheduled > 0 && counts.completed >= counts.scheduled;
         const progress = state.logs[dateStr] || {};
         const has = t => state.supplements.some(s => (progress[t]?.[s.id] || 0) > 0);
-        const colors = ['morning','afternoon','evening'].map((t,ix) => has(t) ? ['#fbbf24','#38bdf8','#a5b4fc'][ix] : (isSelected ? '#99aab5' : '#cbd5e1'));
+        const colors = ['morning','afternoon','evening'].map((t,ix) => has(t) ? ['#fbbf24','#38bdf8','#ef4444'][ix] : (isSelected ? '#99aab5' : '#cbd5e1'));
         html += `<button type="button" onclick="selectDate('${dateStr}')" aria-label="${year}年${month+1}月${i}日、${counts.completed}件記録済み" aria-pressed="${isSelected}" class="calendar-day ${isSelected?'is-selected':''} ${isCurrent?'is-today':''} ${done?'is-complete':''}">
           <span>${i}${done?'<span class="ml-0.5 text-xs" aria-hidden="true">✓</span>':''}</span>
           <span class="flex gap-1" aria-hidden="true">${colors.map(c=>`<span class="calendar-dot" style="background:${c}"></span>`).join('')}</span>
@@ -1055,7 +1114,7 @@
       html += `</div><div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs font-bold text-slate-700">
         <span><span class="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full mr-1"></span>朝</span>
         <span><span class="inline-block w-2.5 h-2.5 bg-sky-400 rounded-full mr-1"></span>昼</span>
-        <span><span class="inline-block w-2.5 h-2.5 bg-indigo-300 rounded-full mr-1"></span>夕</span>
+        <span><span class="inline-block w-2.5 h-2.5 bg-red-500 rounded-full mr-1"></span><span class="text-red-800 font-black">夕</span></span>
         <span><span class="inline-block w-2.5 h-2.5 bg-slate-300 rounded-full mr-1"></span>未記録</span>
         <span class="text-teal-800">✓ 予定完了</span>
       </div></section>`;
@@ -1088,7 +1147,7 @@
                 <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
                 <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
                 <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">昼</button>
-                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-white text-indigo-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
+                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-red-50 text-red-900 shadow-sm border border-red-500' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
               </div>
             </div>`;
 
@@ -1099,7 +1158,7 @@
             timings.forEach(timing => {
               const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
               html += `<div class="mb-5">
-                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 text-slate-600"></i>${getTimingLabel(timing)}</h3>
+                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 ${timing === 'evening' ? 'text-red-600' : 'text-slate-600'}"></i><span class="${timing === 'evening' ? 'text-red-800' : 'text-slate-900'}">${getTimingLabel(timing)}</span></h3>
                 <div class="space-y-2">`;
 
               state.supplements.forEach(supp => {
@@ -1124,7 +1183,17 @@
                   </div>
                 </div>`;
               });
-              html += `</div></div>`;
+              const saveKey = timingSaveKey(state.selectedDate,timing);
+              const saveStatus = state.timingSaveStatus[saveKey];
+              const isSaving = !!state.timingSaving[saveKey];
+              html += `</div>
+                <div class="timing-save-footer">
+                  ${saveStatus ? `<span role="status" aria-live="polite" class="timing-save-feedback ${saveStatus.type}">${safeHtml(saveStatus.text)}</span>` : `<span class="timing-save-feedback text-slate-600">${getTimingLabel(timing)}の記録を確認して保存</span>`}
+                  <button type="button" onclick="saveTimingRecords('${timing}')" ${isSaving ? 'disabled' : ''} class="timing-save-button" aria-label="${getTimingLabel(timing)}の記録を保存する">
+                    <i data-lucide="${isSaving ? 'loader-circle' : 'save'}" class="w-5 h-5"></i>${isSaving ? '保存中…' : '保存する'}
+                  </button>
+                </div>
+              </div>`;
             });
             html += `</div>`;
           }
@@ -1140,7 +1209,7 @@
                   <div class="grid grid-cols-3 gap-2">
                     <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
                     <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-indigo-700">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-indigo-500 mt-1" /></div>
+                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-red-800">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-red-600 mt-1" /></div>
                   </div>
                 </div>
                 <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2">
