@@ -1171,38 +1171,40 @@
     async function saveHistory() {const ok=await saveData();if(ok)scheduleCloudUpload();showToast(ok?'既往歴を保存しました':'保存できませんでした');}
     async function saveSettings() {const ok=await saveData();showToast(ok?'設定を保存しました':'保存できませんでした');}
 
-    function getDayProgress(dateStr) {
-      ensureDayLog(dateStr);
-      const dayLogs = state.logs[dateStr];
-      const timings = ['morning', 'afternoon', 'evening'];
-      let scheduled = 0, completed = 0;
-      
-      timings.forEach(t => {
-        let tScheduled = 0, tLogged = 0;
-        state.supplements.forEach(supp => {
-          if (supp.timingSchedule[t] > 0) {
-            tScheduled++;
-            if (dayLogs[t]?.[supp.id] > 0) tLogged++;
-          }
-        });
-        scheduled += tScheduled;
-        completed += tLogged;
-      });
-      return { hasPlan: scheduled > 0, isFullDone: scheduled > 0 && completed >= scheduled };
-    }
-
+    // v1.5.5: 服用済みの実数と予定達成数を分けて数える。
+    // 予定と異なる時間帯に記録した分も、実際の記録件数から除外しない。
+    // 保存データには一切変更を加えない表示専用の集計処理。
     function getDayCounts(dateStr) {
       const logs = state.logs[dateStr] || {};
-      let scheduled = 0, completed = 0;
-      for (const timing of ['morning','afternoon','evening']) {
+      const timings = ['morning', 'afternoon', 'evening'];
+      let scheduled = 0, completed = 0, totalRecorded = 0;
+      const timingCounts = {morning:0, afternoon:0, evening:0};
+
+      for (const timing of timings) {
+        const timingLogs = logs[timing] || {};
+        // 予定外の服用や、後から登録解除されたサプリの履歴も記録数に含める。
+        for (const amount of Object.values(timingLogs)) {
+          if (Number(amount) > 0) {
+            totalRecorded++;
+            timingCounts[timing]++;
+          }
+        }
         for (const supp of state.supplements) {
-          if ((supp.timingSchedule?.[timing] || 0) > 0) {
+          if (Number(supp.timingSchedule?.[timing] || 0) > 0) {
             scheduled++;
-            if ((logs[timing]?.[supp.id] || 0) > 0) completed++;
+            if (Number(timingLogs[supp.id] || 0) > 0) completed++;
           }
         }
       }
-      return { scheduled, completed };
+      return {
+        scheduled, completed, totalRecorded,
+        offSchedule:Math.max(0,totalRecorded-completed), timingCounts
+      };
+    }
+
+    function getDayProgress(dateStr) {
+      const counts=getDayCounts(dateStr);
+      return {hasPlan:counts.scheduled>0, isFullDone:counts.scheduled>0 && counts.completed>=counts.scheduled};
     }
 
     function renderCalendarHTML() {
@@ -1219,8 +1221,26 @@
           <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック</div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
           <button onclick="goToToday()" class="shrink-0 rounded-xl bg-white text-teal-900 px-3 py-2 border-2 border-white font-black text-xs shadow">今日に戻る</button>
         </div>
-        <div class="flex justify-between items-end mt-3"><span class="text-sm font-bold">${selectedCounts.scheduled ? '記録済み / 予定' : '予定の登録はありません'}</span><span class="text-xl font-black">${selectedCounts.completed}<span class="text-sm"> / ${selectedCounts.scheduled} 件</span></span></div>
-        <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="記録進捗" class="mt-2 h-3 w-full rounded-full bg-teal-950/70 overflow-hidden border border-teal-500"><div style="width:${percent}%" class="h-full bg-yellow-300 rounded-full transition-all"></div></div>
+        <div class="grid grid-cols-3 gap-2 mt-3" aria-label="服用記録の集計">
+          <div class="bg-white text-teal-950 border-2 border-teal-200 rounded-xl p-2 sm:p-3 min-w-0">
+            <p class="text-[11px] sm:text-xs leading-tight font-black">記録した件数</p>
+            <p class="text-2xl sm:text-3xl font-black mt-1 tabular-nums">${selectedCounts.totalRecorded}<span class="text-xs ml-0.5">件</span></p>
+          </div>
+          <div class="bg-white text-teal-950 border-2 border-teal-200 rounded-xl p-2 sm:p-3 min-w-0">
+            <p class="text-[11px] sm:text-xs leading-tight font-black">予定内の記録</p>
+            <p class="text-2xl sm:text-3xl font-black mt-1 tabular-nums">${selectedCounts.completed}<span class="text-sm font-bold"> / ${selectedCounts.scheduled}</span></p>
+          </div>
+          <div class="bg-white text-amber-900 border-2 border-amber-300 rounded-xl p-2 sm:p-3 min-w-0">
+            <p class="text-[11px] sm:text-xs leading-tight font-black">予定外の記録</p>
+            <p class="text-2xl sm:text-3xl font-black mt-1 tabular-nums">${selectedCounts.offSchedule}<span class="text-xs ml-0.5">件</span></p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm font-black text-white" aria-label="時間帯ごとの記録件数">
+          <span>朝 ${selectedCounts.timingCounts.morning}件</span><span>昼 ${selectedCounts.timingCounts.afternoon}件</span><span>夕・夜 ${selectedCounts.timingCounts.evening}件</span>
+        </div>
+        <div class="flex justify-between items-end mt-3 gap-2"><span class="text-sm font-bold">${selectedCounts.scheduled ? '予定内の達成率' : '予定は未登録'}</span><span class="text-base font-black tabular-nums">${selectedCounts.scheduled ? percent+'%' : '―'}</span></div>
+        <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="予定内の服用達成率" class="mt-2 h-3 w-full rounded-full bg-teal-950/70 overflow-hidden border border-teal-500"><div style="width:${percent}%" class="h-full bg-yellow-300 rounded-full transition-all"></div></div>
+        <p class="mt-2 text-xs leading-relaxed font-bold text-teal-50">※予定外も「記録した件数」に含みます。予定内の達成率には加算しません。</p>
       </section>`;
       html += `<section class="bg-white px-3 sm:px-4 py-4 rounded-2xl shadow-md border-2 border-slate-600 mb-4">
         <div class="flex justify-between items-center mb-4">
@@ -1240,7 +1260,7 @@
         const progress = state.logs[dateStr] || {};
         const has = t => state.supplements.some(s => (progress[t]?.[s.id] || 0) > 0);
         const colors = ['morning','afternoon','evening'].map((t,ix) => has(t) ? ['#fbbf24','#38bdf8','#ef4444'][ix] : (isSelected ? '#99aab5' : '#cbd5e1'));
-        html += `<button type="button" onclick="selectDate('${dateStr}')" aria-label="${year}年${month+1}月${i}日、${counts.completed}件記録済み" aria-pressed="${isSelected}" class="calendar-day ${isSelected?'is-selected':''} ${isCurrent?'is-today':''} ${done?'is-complete':''}">
+        html += `<button type="button" onclick="selectDate('${dateStr}')" aria-label="${year}年${month+1}月${i}日、${counts.totalRecorded}件記録済み、予定内${counts.completed}件" aria-pressed="${isSelected}" class="calendar-day ${isSelected?'is-selected':''} ${isCurrent?'is-today':''} ${done?'is-complete':''}">
           <span>${i}${done?'<span class="ml-0.5 text-xs" aria-hidden="true">✓</span>':''}</span>
           <span class="flex gap-1" aria-hidden="true">${colors.map(c=>`<span class="calendar-dot" style="background:${c}"></span>`).join('')}</span>
         </button>`;
