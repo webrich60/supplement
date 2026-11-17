@@ -790,6 +790,10 @@
       state.cloudBusy=true;state.cloudError='';state.cloudStatus='';render();
       try {
         const r=await cloudRequest('cloudStatus');
+        if (r.status !== 'success' || typeof r.hasCloudData !== 'boolean' ||
+            r.revision == null || !Number.isSafeInteger(Number(r.revision))) {
+          throw new Error('接続先のGASがクラウド同期の応答を返していません。同期対応のGASをデプロイし、設定の /exec URL を確認してください。');
+        }
         state.cloudStatus=r.hasCloudData ? `Google側にデータがあります（改訂${r.revision}、${r.updatedAt}）。この端末は改訂${state.cloudRevision}です。` : 'Google側はまだ空です。まず「Googleに保存」を押してください。';
       } catch(e) {state.cloudError=explainError(e);}
       finally {state.cloudBusy=false;render();}
@@ -831,6 +835,9 @@
         const data=makeSnapshot();
         const r=await cloudRequest('cloudPush',{expectedRevision:state.cloudRevision,snapshot:{supplements:data.supplements,logs:data.logs,medicalHistory:data.medicalHistory}});
         const revision=Number(r.revision);
+        if (r.status === 'success' && r.revision == null) {
+          throw new Error('接続先のGASがクラウド保存の改訂番号を返していません。同期対応のGASをデプロイし、設定の /exec URL を確認してください。');
+        }
         if (r.status !== 'success' || !Number.isSafeInteger(revision) || revision <= state.cloudRevision) {
           throw new Error('GASからクラウド保存の完了を確認できませんでした。');
         }
@@ -1411,7 +1418,7 @@
           </div>`;
         } else if (state.activeTab === 'settings') {
           html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-400">
-            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定 <span class="text-xs">v1.5.6</span></h2>
+            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定 <span class="text-xs">v1.5.7</span></h2>
             <div class="p-3 border-2 border-teal-300 bg-teal-50 rounded-xl">
               <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
               <input type="text" value="${safeHtml(state.gasUrl)}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
