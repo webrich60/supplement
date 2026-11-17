@@ -1277,6 +1277,7 @@
           html += renderCalendarHTML();
           html += `<section class="mb-4 rounded-2xl border-2 border-slate-500 bg-white p-4 shadow-sm">
             <h2 class="text-lg font-black text-slate-900">その日のメモ</h2>
+            <p class="mt-1 text-sm text-slate-700">10月14日〜11月16日のデータが消えています。</p>
             <label for="daily-note" class="mt-2 mb-2 block text-sm font-bold text-slate-900">${state.selectedDate.replace(/-/g,'/')} のメモ</label>
             <textarea id="daily-note" rows="3" oninput="updateDailyNote(this.value)"
               class="w-full rounded-xl border-2 border-slate-500 p-3 text-base text-slate-900"
@@ -1418,7 +1419,7 @@
           </div>`;
         } else if (state.activeTab === 'settings') {
           html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-400">
-            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定 <span class="text-xs">v1.5.7</span></h2>
+            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定 <span class="text-xs">v1.5.8</span></h2>
             <div class="p-3 border-2 border-teal-300 bg-teal-50 rounded-xl">
               <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
               <input type="text" value="${safeHtml(state.gasUrl)}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
