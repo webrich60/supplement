@@ -18,11 +18,12 @@ p{margin:8px 0}.small{font-size:.83rem}.muted{color:#4a6070}.bold{font-weight:80
 .dose-card{border:2px solid #b0bfc8;border-radius:15px;padding:14px;margin:13px 0}.dose-title{font-weight:900;font-size:1.1rem;color:#174e51}.pill-item{padding:12px 0;border-top:1px solid #c8d3d9}.pill-item:first-of-type{border-top:none}.pill-name{font-weight:850;overflow-wrap:anywhere}.pill-info{font-size:.83rem;color:#4e6472}.amount{text-align:center;font-size:1rem;font-weight:850;color:#204752;min-width:38px}.dose-action{width:100%;margin-top:7px}.recorded{background:#e9faf4;border-color:#159777;color:#07574e}.total{border:2px solid #319e90;border-radius:13px;padding:11px 14px;background:#ecfdf8;font-weight:850;color:#104e48}
 .tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #9dadba;display:flex;justify-content:center;gap:2px;padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom));box-shadow:0 -3px 10px #31485b19;z-index:20}.tab{flex:1;max-width:190px;border:0;background:transparent;color:#53667a;border-radius:12px;padding:5px 4px;font-weight:850;font-size:.81rem;min-height:56px}.tab b{display:block;font-size:1.35rem;line-height:1.3}.tab.active{background:#ddf7f0;color:#065c55}
 .empty{padding:18px;background:#f4f7f9;border:1px dashed #9aabb7;border-radius:11px;text-align:center;color:#526572}.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.formgrid label{font-size:.87rem;font-weight:800}.formgrid input{width:100%;max-width:100%}.supp-row{border-top:1px solid #b5c7cf;padding:14px 0}.supp-row:first-child{border-top:none}.history-group{padding:12px 0;border-top:1px solid #d0dadd}.history-date{font-weight:900;color:#0a5e57}.history-line{display:flex;justify-content:space-between;padding:5px 0;gap:10px}.kicker{font-size:.74rem;font-weight:800;color:#47636e;letter-spacing:.03em}.divider{border:0;border-top:1px solid #c8d5de;margin:15px 0}.photo-preview{display:block;max-width:100%;max-height:250px;object-fit:contain;border:2px solid #93b5b0;border-radius:13px;margin:12px auto}.ai-result{border:2px solid #288d80;background:#effbf6;border-radius:12px;padding:13px;margin-top:12px;overflow-wrap:anywhere}.details{border:1px solid #aec1cb;border-radius:11px;padding:11px;margin-top:10px}.details summary{font-weight:850;cursor:pointer;color:#125e56}.details textarea{resize:vertical}.hidden{display:none!important}.spinner{display:inline-block;width:16px;height:16px;border:3px solid #a5e9de;border-top-color:#0d786e;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:5px}@keyframes spin{to{transform:rotate(360deg)}}
+.pill-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1}.pill-photo{width:58px;height:58px;flex:0 0 58px;border:2px solid #b3c6c6;border-radius:11px;overflow:hidden;background:#edf5f3;display:flex;align-items:center;justify-content:center}.pill-photo img{width:100%;height:100%;object-fit:cover}.pill-photo .pic-placeholder{font-size:1.35rem}.pill-photo [hidden]{display:none!important}.pill-photo.large{width:94px;height:94px;flex-basis:94px}.calendar-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.calendar-weekday{text-align:center;color:#526574;font-size:.78rem;font-weight:850;padding:4px 0}.calendar-weekday.sun{color:#b42d31}.calendar-weekday.sat{color:#165daa}.calendar-blank{min-height:57px}.calendar-day{background:#fff;color:#1b3441;border:1.5px solid #bfccd2;border-radius:9px;min-height:65px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:3px;font-size:.88rem;font-weight:850}.calendar-day.is-today{box-shadow:inset 0 0 0 2px #db952a}.calendar-day.is-selected{background:#d6f9ef;border-color:#087c6f;color:#074e49;box-shadow:inset 0 0 0 1px #087c6f}.calendar-day.is-complete .day-number:after{content:'✓';font-size:.7rem;color:#087756;margin-left:2px}.calendar-dots{display:flex;justify-content:center;gap:3px;min-height:8px}.calendar-dot{width:7px;height:7px;border-radius:50%;background:#d2dade}.calendar-dot.morning.on{background:#d59c11}.calendar-dot.afternoon.on{background:#138ac7}.calendar-dot.evening.on{background:#cf4b54}.calendar-legend{display:flex;gap:11px;flex-wrap:wrap;font-size:.73rem;color:#415864;font-weight:750;margin-top:12px}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px}.photo-row{display:flex;align-items:center;gap:12px;min-width:0}.photo-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}.pill-item .row{flex-wrap:wrap;justify-content:flex-start}@media(max-width:420px){.calendar-grid{gap:3px}.calendar-day{min-height:57px;font-size:.8rem}.calendar-blank{min-height:57px}.calendar-dot{width:6px;height:6px}.pill-photo{width:52px;height:52px;flex-basis:52px}}
 @media(min-width:600px){.brand{font-size:1.5rem}.brand-icon{font-size:1.8rem}.card{padding:23px}.dose-action{width:auto;margin-top:0}.pill-item{display:flex;align-items:center;justify-content:space-between;gap:15px}.tabs{padding-top:9px}}
 </style>
 </head>
 <body>
-<header class="header"><div class="header-inner"><div class="brand-icon" aria-hidden="true">🗓️</div><div class="brand">ビタミン・サプリ管理<div class="v">シンプル版 v2.2・写真AI</div></div><button class="today" data-action="today">今日へ</button></div></header>
+<header class="header"><div class="header-inner"><div class="brand-icon" aria-hidden="true">🗓️</div><div class="brand">ビタミン・サプリ管理<div class="v">シンプル版 v2.3・写真AI＋カレンダー</div></div><button class="today" data-action="today">今日へ</button></div></header>
 <main><div id="notice" aria-live="polite"></div><div id="content"></div></main>
 <nav class="tabs" aria-label="メニュー">
 <button class="tab active" data-tab="record"><b>🗓️</b>記録</button>
@@ -41,9 +42,9 @@ function oldGasUrl(){
  try {const x=JSON.parse(safeStorageGet('supplement_app_v2_snapshot')||'null');return x?.gasUrl||'';}catch(e){return '';}
 }
 const PENDING_KEY = 'supp_simple_pending';
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 const TIMES = [{id:'morning',name:'朝',symbol:'☀️'},{id:'afternoon',name:'昼',symbol:'🌤️'},{id:'evening',name:'夜',symbol:'🌙'}];
-const app={tab:'record',date:todayDate(),gasUrl:DEFAULT_GAS_URL||safeStorageGet(URL_KEY)||oldGasUrl()||'',supplements:[],logs:{},loaded:false,busy:false,message:'',kind:'',editing:null,historyRows:0,spreadsheet:'',pending:null,aiConfigured:false,ai:{dataUrl:'',previewName:'',analyzing:false,error:'',result:null},draft:null};
+const app={tab:'record',date:todayDate(),gasUrl:DEFAULT_GAS_URL||safeStorageGet(URL_KEY)||oldGasUrl()||'',supplements:[],logs:{},loaded:false,busy:false,message:'',kind:'',editing:null,historyRows:0,spreadsheet:'',pending:null,aiConfigured:false,ai:{dataUrl:'',saveDataUrl:'',previewName:'',analyzing:false,error:'',result:null},draft:null,photoRemove:false,photoCache:{},photoErrors:{},photoLoading:{},calendarMonth:todayDate().slice(0,7)};
 function todayDate(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function safeStorageGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function safeStorageSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
@@ -69,7 +70,7 @@ async function readState(silent=false){
   app.busy=true;render();
   try{
     const r=await jsonp('state');
-    if(!r?.ok || r.version!==VERSION || !Array.isArray(r.supplements))throw new Error(r?.error||'GASがv2.2ではありません。付属のCode.gsを貼り、既存のデプロイを「新バージョン」で更新してください。');
+    if(!r?.ok || r.version!==VERSION || !Array.isArray(r.supplements))throw new Error(r?.error||'GASがv2.3ではありません。付属のCode.gsを貼り、既存のデプロイを「新バージョン」で更新してください。');
     app.supplements=r.supplements;app.logs=r.logs||{};app.loaded=true;app.spreadsheet=r.spreadsheet||'';app.historyRows=Number(r.historyRows||0);app.aiConfigured=!!r.aiConfigured;
     if(!silent)alertMsg('Googleスプレッドシートから読み込みました。','good');
     return true;
@@ -123,15 +124,64 @@ async function saveGasUrl(e){e.preventDefault();const input=document.getElementB
 function activeSupps(){return app.supplements.filter(s=>!s.deleted);}
 function countRecorded(date){const o=app.logs[date]||{};let n=0;TIMES.forEach(t=>{Object.values(o[t.id]||{}).forEach(v=>{if(Number(v)>0)n++;});});return n;}
 function dayLog(date,t,id){return Math.max(0,Number(app.logs[date]?.[t]?.[id]||0));}
+// 写真はGAS経由でDriveから読み込み、画面に表示します。端末内の画像保存には依存しません。
+function photoPlaceholder(id,size=''){
+ const safe=esc(id||'');
+ return `<span class="pill-photo ${size}"><img data-photo-id="${safe}" alt="サプリの写真" hidden><span class="pic-placeholder" aria-hidden="true">💊</span></span>`;
+}
+function hydratePhotos(){
+ if(!app.gasUrl||!app.loaded)return;
+ const imgs=Array.from(document.querySelectorAll('img[data-photo-id]'));
+ const ids=[...new Set(imgs.map(el=>el.dataset.photoId).filter(Boolean))];
+ for(const id of ids){
+   if(app.photoCache[id]){imgs.filter(el=>el.dataset.photoId===id).forEach(el=>{
+     el.src=app.photoCache[id];el.hidden=false;if(el.nextElementSibling)el.nextElementSibling.hidden=true;
+   });continue;}
+   if(app.photoErrors[id]||app.photoLoading[id])continue;
+   if(Object.keys(app.photoLoading).length>=3)break;
+   app.photoLoading[id]=true;
+   jsonp('photo',{fileId:id},28000).then(r=>{
+     if(!r?.ok||!r.dataUrl||!r.dataUrl.startsWith('data:image/'))throw new Error(r?.error||'写真を読み込めません');
+     app.photoCache[id]=r.dataUrl;
+     document.querySelectorAll('img[data-photo-id]').forEach(el=>{
+       if(el.dataset.photoId!==id)return;
+       el.src=r.dataUrl;el.hidden=false;if(el.nextElementSibling)el.nextElementSibling.hidden=true;
+     });
+   }).catch(e=>{app.photoErrors[id]=true;console.warn('写真読込:',e.message);})
+    .finally(()=>{delete app.photoLoading[id];hydratePhotos();});
+ }
+}
+function calendarStats(date){
+ const day=app.logs[date]||{},sups=activeSupps();let planned=0,completed=0;
+ const present={};
+ TIMES.forEach(t=>{
+   present[t.id]=Object.values(day[t.id]||{}).some(n=>Number(n)>0);
+   sups.forEach(s=>{if(Number(s[t.id])>0){planned++;if(dayLog(date,t.id,s.id)>0)completed++;}});
+ });
+ return {planned,completed,present,complete:planned>0&&completed>=planned};
+}
+function renderCalendar(){
+ const [year,month]=app.calendarMonth.split('-').map(Number),first=new Date(year,month-1,1).getDay();
+ const days=new Date(year,month,0).getDate();let out=`<section class="card teal"><div class="calendar-title"><button class="arrow" data-action="month-prev" aria-label="前の月">‹</button><strong>${year}年${month}月</strong><button class="arrow" data-action="month-next" aria-label="次の月">›</button></div><div class="calendar-grid" role="group" aria-label="服用記録カレンダー">`;
+ ['日','月','火','水','木','金','土'].forEach((day,i)=>{out+=`<span class="calendar-weekday ${i===0?'sun':i===6?'sat':''}">${day}</span>`;});
+ for(let i=0;i<first;i++)out+='<span class="calendar-blank" aria-hidden="true"></span>';
+ for(let i=1;i<=days;i++){
+  const date=[year,String(month).padStart(2,'0'),String(i).padStart(2,'0')].join('-'),s=calendarStats(date);
+  out+=`<button class="calendar-day ${date===app.date?'is-selected':''} ${date===todayDate()?'is-today':''} ${s.complete?'is-complete':''}" aria-pressed="${date===app.date}" data-action="calendar-select" data-date="${date}" aria-label="${month}月${i}日、服用記録${countRecorded(date)}件"><span class="day-number">${i}</span><span class="calendar-dots">${TIMES.map(t=>`<span class="calendar-dot ${t.id} ${s.present[t.id]?'on':''}"></span>`).join('')}</span></button>`;
+ }
+ out+='</div><div class="calendar-legend"><span><i class="legend-dot" style="background:#d59c11"></i>朝</span><span><i class="legend-dot" style="background:#138ac7"></i>昼</span><span><i class="legend-dot" style="background:#cf4b54"></i>夜</span><span>✓ 予定分の記録完了</span></div><p class="small muted">日付をタップすると、その日の服用記録に切り替わります。</p></section>';
+ return out;
+}
+function shiftMonth(delta){const [y,m]=app.calendarMonth.split('-').map(Number),d=new Date(y,m-1+delta,1,12);app.calendarMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');render();}
 function renderRecord(){if(!app.loaded)return `<section class="card teal"><h2>服用記録</h2><div class="empty">Googleスプレッドシートに接続すると、日々の服用を記録できます。</div><button class="btn full" data-tab="settings">GASのURLを設定する</button></section>`;
 const active=activeSupps();
-let html=`<section class="card teal"><div class="date-selector"><button class="arrow" data-action="day-prev" aria-label="前日">‹</button><input class="input date" type="date" id="record-date" value="${esc(app.date)}" aria-label="記録の日付"><button class="arrow" data-action="day-next" aria-label="翌日">›</button></div><p class="small muted bold" style="text-align:center">日付を選び、服用したサプリを記録</p><div class="total">この日の服用記録：${countRecorded(app.date)}件</div></section>`;
+let html=renderCalendar()+`<section class="card teal"><div class="date-selector"><button class="arrow" data-action="day-prev" aria-label="前日">‹</button><input class="input date" type="date" id="record-date" value="${esc(app.date)}" aria-label="記録の日付"><button class="arrow" data-action="day-next" aria-label="翌日">›</button></div><p class="small muted bold" style="text-align:center">日付を選び、服用したサプリを記録</p><div class="total">この日の服用記録：${countRecorded(app.date)}件</div></section>`;
 if(!active.length)return html+`<section class="card"><h2>サプリが未登録です</h2><p>まず名前と朝・昼・夜の目安を登録してください。</p><button class="btn full" data-tab="manage">サプリを登録する</button></section>`;
 TIMES.forEach(t=>{
  html+=`<section class="card"><h2>${t.symbol} ${t.name}の記録</h2>`;
  active.forEach(s=>{
  const existing=dayLog(app.date,t.id,s.id),plan=Math.max(0,Number(s[t.id])||0);
- html+=`<div class="pill-item"><div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">目安：${plan}粒 ${existing?'/ 記録済み：'+existing+'粒':''}</div></div><div class="row"><input aria-label="${esc(s.name)} ${t.name}の量" class="input num" type="number" min="0" max="100" step="1" id="dose-${esc(t.id)}-${esc(s.id)}" value="${existing||plan||1}"><span class="small bold">粒</span><button class="btn tiny ${existing?'recorded':''}" data-action="record" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>${existing?'変更する':'記録する'}</button>${existing?`<button class="btn tiny ghost" data-action="cancel" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>取消</button>`:''}</div></div>`;
+ html+=`<div class="pill-item"><div class="pill-main">${photoPlaceholder(s.photoId)}<div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">目安：${plan}粒 ${existing?'/ 記録済み：'+existing+'粒':''}</div></div></div><div class="row"><input aria-label="${esc(s.name)} ${t.name}の量" class="input num" type="number" min="0" max="100" step="1" id="dose-${esc(t.id)}-${esc(s.id)}" value="${existing||plan||1}"><span class="small bold">粒</span><button class="btn tiny ${existing?'recorded':''}" data-action="record" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>${existing?'変更する':'記録する'}</button>${existing?`<button class="btn tiny ghost" data-action="cancel" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>取消</button>`:''}</div></div>`;
  });
  html+='</section>';
 });return html;}
@@ -142,9 +192,11 @@ function captureDraft(){
 function supplementDraft(s){return {name:s?.name||'',morning:s?.morning??0,afternoon:s?.afternoon??0,evening:s?.evening??0,aiIngredients:s?.aiIngredients||'',aiServing:s?.aiServing||'',aiSummary:s?.aiSummary||'',aiCautions:s?.aiCautions||''};}
 function renderManage(){if(!app.loaded)return `<section class="card"><h2>サプリ管理</h2><p>先にGASへ接続してください。</p><button class="btn" data-tab="settings">設定へ</button></section>`;
 const edit=app.editing&&app.supplements.find(s=>s.id===app.editing);const d=app.draft||supplementDraft(edit);
-let html=`<section class="card teal"><h2>📷 写真からAIで読み取る</h2><p class="small">サプリのパッケージや成分表示を撮影すると、名前・表示成分・服用目安を読み取ります。撮影した写真そのものはスプレッドシートに保存しません。</p>
+let html=`<section class="card teal"><h2>📷 サプリ写真を登録・AI分析</h2><p class="small">写真はサプリの一覧と服用記録に表示され、Google Driveに保存されます。AI分析しなくても写真だけ登録できます。</p>
 <label class="label" for="supp-photo">パッケージ写真を選択・撮影</label><input class="input" id="supp-photo" type="file" accept="image/*" aria-label="サプリのパッケージ写真" ${app.ai.analyzing?'disabled':''}>
-${app.ai.dataUrl?`<img class="photo-preview" src="${app.ai.dataUrl}" alt="分析する画像のプレビュー"><p class="small muted">選択画像：${esc(app.ai.previewName)}</p>`:''}
+${app.ai.dataUrl?`<img class="photo-preview" src="${app.ai.dataUrl}" alt="登録する写真のプレビュー"><p class="small muted">選択画像：${esc(app.ai.previewName)}</p>`:(edit?.photoId&&!app.photoRemove?`<div class="photo-row">${photoPlaceholder(edit.photoId,'large')}<span class="small muted">登録済みの写真です。変更しなければそのまま残ります。</span></div>`:'')}
+${(app.ai.dataUrl||(edit?.photoId&&!app.photoRemove))?`<div class="photo-actions"><button class="btn ghost tiny" type="button" data-action="photo-remove">写真を外す</button></div>`:''}
+${app.photoRemove?'<p class="small muted">写真を外す変更は「変更を保存」で反映されます（元のDriveファイルは削除しません）。</p>':''}
 <button class="btn full" data-action="analyze" ${(!app.ai.dataUrl||app.ai.analyzing||app.busy)?'disabled':''} style="margin-top:12px">${app.ai.analyzing?'<span class="spinner"></span>写真を解析中…':'✨ 写真をAI分析して自動入力'}</button>
 ${app.ai.error?`<div class="notice error" role="alert" style="margin-top:11px">${esc(app.ai.error)}</div>`:''}
 ${!app.aiConfigured?`<div class="notice warn" style="margin-top:11px">GASのGemini APIキーが未確認です。設定画面の案内をご覧ください。</div>`:''}
@@ -156,10 +208,10 @@ html+=`<section class="card teal"><h2>${edit?'サプリを編集':'サプリを�
 <label class="label" for="supp-serving">ラベルの服用目安</label><textarea class="input" id="supp-serving" rows="2" maxlength="400">${esc(d.aiServing)}</textarea>
 <label class="label" for="supp-summary">成分についての説明</label><textarea class="input" id="supp-summary" rows="2" maxlength="700">${esc(d.aiSummary)}</textarea>
 <label class="label" for="supp-cautions">注意事項</label><textarea class="input" id="supp-cautions" rows="2" maxlength="700">${esc(d.aiCautions)}</textarea></details>
-<button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">${edit?'変更を保存':'サプリを登録'}</button>${edit?`<button class="btn ghost full" type="button" data-action="edit-cancel" style="margin-top:8px">編集をやめる</button>`:''}</form></section>`;
+<button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">${edit?'写真・変更を保存':'写真・サプリを登録'}</button>${edit?`<button class="btn ghost full" type="button" data-action="edit-cancel" style="margin-top:8px">編集をやめる</button>`:''}</form></section>`;
 html+=`<section class="card"><h2>登録済みサプリ（${activeSupps().length}件）</h2>`;
 if(!activeSupps().length)html+='<div class="empty">まだ登録されていません。</div>';
-activeSupps().forEach(s=>{html+=`<div class="supp-row"><div class="line between"><div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">朝 ${Number(s.morning)||0}粒 / 昼 ${Number(s.afternoon)||0}粒 / 夜 ${Number(s.evening)||0}粒</div>${s.aiIngredients?`<div class="pill-info">AI成分メモ：${esc(String(s.aiIngredients).slice(0,110))}</div>`:''}</div><button class="btn ghost tiny" data-action="edit" data-id="${esc(s.id)}">編集</button><button class="btn red tiny" data-action="delete" data-id="${esc(s.id)}">削除</button></div></div>`;});
+activeSupps().forEach(s=>{html+=`<div class="supp-row"><div class="line between"><div class="pill-main">${photoPlaceholder(s.photoId)}<div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">朝 ${Number(s.morning)||0}粒 / 昼 ${Number(s.afternoon)||0}粒 / 夜 ${Number(s.evening)||0}粒</div>${s.aiIngredients?`<div class="pill-info">AI成分メモ：${esc(String(s.aiIngredients).slice(0,110))}</div>`:''}</div></div><button class="btn ghost tiny" data-action="edit" data-id="${esc(s.id)}">編集</button><button class="btn red tiny" data-action="delete" data-id="${esc(s.id)}">削除</button></div></div>`;});
 return html+'</section>';}
 function renderHistory(){if(!app.loaded)return `<section class="card"><h2>服用履歴</h2><p>先にGASへ接続してください。</p></section>`;
 const days=Object.keys(app.logs).filter(d=>countRecorded(d)>0).sort((a,b)=>b.localeCompare(a));
@@ -168,10 +220,11 @@ if(!days.length)return html+'<div class="empty">表示できる服用履歴は�
 days.forEach(day=>{let lines='';TIMES.forEach(t=>{Object.entries(app.logs[day]?.[t.id]||{}).forEach(([id,amount])=>{if(Number(amount)<=0)return;let s=app.supplements.find(s=>s.id===id);lines+=`<div class="history-line"><span>${t.name}：${esc(s?.name||id)}</span><strong>${Number(amount)} 粒</strong></div>`;});});
  html+=`<div class="history-group"><div class="line between"><span class="history-date">${esc(day)}（${countRecorded(day)}件）</span><button class="btn ghost tiny" data-action="jump" data-date="${esc(day)}">この日を開く</button></div>${lines}</div>`;
 });return html+'</section>';}
-function renderSettings(){return `<section class="card teal"><h2>Googleスプレッドシート設定</h2><p class="small"><strong>服用履歴の同期はGASのURLだけ。</strong> 同期キー・setupCloudSyncは不要です。</p><form id="gas-form"><label class="label" for="gas-url">GAS ウェブアプリ URL</label><input class="input" id="gas-url" type="url" required inputmode="url" spellcheck="false" autocomplete="url" value="${esc(app.gasUrl)}" placeholder="https://script.google.com/macros/s/.../exec"><button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">URLを保存して接続</button></form><hr class="divider"><div class="notice ${app.loaded?'good':'warn'}"><div class="status">${app.loaded?'✅ 接続済み':'● 未接続'}</div>${app.loaded?`<p class="small">保存先：${esc(app.spreadsheet)}</p>`:''}</div><button class="btn ghost full" data-action="refresh" ${app.busy?'disabled':''}>スプレッドシートを再読込</button>${app.pending?`<div class="notice warn"><b>⚠ 保存完了を確認できていない操作が1件あります。</b><button class="btn full" data-action="retry" ${app.busy?'disabled':''} style="margin-top:9px">未確認の送信を再試行</button></div>`:''}<p class="small muted">スマホの保存データを削除してもGoogleの履歴は消えません。同じGAS URLを入れると復元できます。</p></section><section class="card"><h2>✨ 写真AIの設定</h2><div class="notice ${app.aiConfigured?'good':'warn'}">${app.aiConfigured?'✅ Gemini APIキーを確認しました（実際の解析結果は写真から確認してください）':'⚠ Gemini APIキーがまだ設定されていないか、接続確認前です。'}</div><p>写真AIだけ、GASの「プロジェクトの設定」→「スクリプト プロパティ」に <code>GEMINI_API_KEY</code> を1回登録してください。以前の設定が残っていれば再設定不要です。</p><p class="small muted">使用モデル：Gemini 3.1 Flash-Lite。API利用料が発生する場合があります。APIキーはアプリやGitHubに貼らないでください。画像は解析時のみGeminiへ送ります。</p></section><section class="card"><h2>データについて</h2><p>服用履歴・サプリ一覧・AI読み取りメモはスプレッドシートに保存します。写真そのものは保存しません。</p><p class="small muted">※ GASを「全員」に公開するとURLを知っている人が記録を変更でき、写真AIによりAPI費用が生じ得ます。共有には注意してください。</p><button class="btn ghost full" data-action="csv">服用履歴をCSVで保存</button></section>`;}
+function renderSettings(){return `<section class="card teal"><h2>Googleスプレッドシート設定</h2><p class="small"><strong>服用履歴の同期はGASのURLだけ。</strong> 同期キー・setupCloudSyncは不要です。</p><form id="gas-form"><label class="label" for="gas-url">GAS ウェブアプリ URL</label><input class="input" id="gas-url" type="url" required inputmode="url" spellcheck="false" autocomplete="url" value="${esc(app.gasUrl)}" placeholder="https://script.google.com/macros/s/.../exec"><button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">URLを保存して接続</button></form><hr class="divider"><div class="notice ${app.loaded?'good':'warn'}"><div class="status">${app.loaded?'✅ 接続済み':'● 未接続'}</div>${app.loaded?`<p class="small">保存先：${esc(app.spreadsheet)}</p>`:''}</div><button class="btn ghost full" data-action="refresh" ${app.busy?'disabled':''}>スプレッドシートを再読込</button>${app.pending?`<div class="notice warn"><b>⚠ 保存完了を確認できていない操作が1件あります。</b><button class="btn full" data-action="retry" ${app.busy?'disabled':''} style="margin-top:9px">未確認の送信を再試行</button></div>`:''}<p class="small muted">スマホの保存データを削除してもGoogleの履歴は消えません。同じGAS URLを入れると復元できます。</p></section><section class="card"><h2>✨ 写真AIの設定</h2><div class="notice ${app.aiConfigured?'good':'warn'}">${app.aiConfigured?'✅ Gemini APIキーを確認しました（実際の解析結果は写真から確認してください）':'⚠ Gemini APIキーがまだ設定されていないか、接続確認前です。'}</div><p>写真AIだけ、GASの「プロジェクトの設定」→「スクリプト プロパティ」に <code>GEMINI_API_KEY</code> を1回登録してください。以前の設定が残っていれば再設定不要です。</p><p class="small muted">使用モデル：Gemini 3.1 Flash-Lite。API利用料が発生する場合があります。APIキーはアプリやGitHubに貼らないでください。画像は解析時のみGeminiへ送ります。</p></section><section class="card"><h2>データについて</h2><p>服用履歴・サプリ一覧・AI読み取りメモはスプレッドシート、登録写真はGoogle Driveに保存します。画像は端末のストレージを削除しても再表示できます（Driveに保存済みの場合）。</p><p class="small muted">※ GASを「全員」に公開するとURLを知っている人が記録を変更でき、写真AIによりAPI費用が生じ得ます。共有には注意してください。</p><button class="btn ghost full" data-action="csv">服用履歴をCSVで保存</button></section>`;}
 function render(){paintNotice();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===app.tab));
 const area=document.getElementById('content');let html='';if(app.busy)html='<div class="notice"><span class="spinner"></span>Googleと通信しています…</div>';
 html+=app.tab==='manage'?renderManage():app.tab==='history'?renderHistory():app.tab==='settings'?renderSettings():renderRecord();area.innerHTML=html;
+queueMicrotask(hydratePhotos);
 }
 async function recordDose(id,timing,clear){if(!app.loaded||app.busy)return;const s=app.supplements.find(x=>x.id===id);if(!s)return;
 const amount=clear?0:Number(document.getElementById('dose-'+timing+'-'+id)?.value);
@@ -183,13 +236,13 @@ if(!name){alertMsg('サプリ名を入力してください。','error');return;
 captureDraft();
 const id=app.editing||newId('supp_');
 const aiFields={aiIngredients:document.getElementById('supp-ingredients').value.trim().slice(0,800),aiServing:document.getElementById('supp-serving').value.trim().slice(0,400),aiSummary:document.getElementById('supp-summary').value.trim().slice(0,700),aiCautions:document.getElementById('supp-cautions').value.trim().slice(0,700)};
-const done=await saveAction({action:'supplement',supplement:{id,name,...amounts,...aiFields,deleted:false}});
-if(done){app.editing=null;app.draft=null;app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};render();}}
+const done=await saveAction({action:'supplement',supplement:{id,name,...amounts,...aiFields,deleted:false,photoData:app.ai.saveDataUrl||"",removeImage:app.photoRemove}});
+if(done){app.editing=null;app.draft=null;app.ai={dataUrl:'',saveDataUrl:'',previewName:'',analyzing:false,error:'',result:null};app.photoRemove=false;render();}}
 async function deleteSupplement(id){const s=app.supplements.find(x=>x.id===id);if(!s||app.busy)return;if(!confirm(`「${s.name}」を登録一覧から外しますか？\n服用履歴は削除されません。`))return;
 await saveAction({action:'supplement',supplement:{...s,deleted:true}});}
 async function choosePhoto(file){
  if(!file)return;
- captureDraft();app.ai.error='';app.ai.result=null;app.ai.dataUrl='';app.ai.previewName='';
+ captureDraft();app.ai.error='';app.ai.result=null;app.ai.dataUrl='';app.ai.saveDataUrl='';app.ai.previewName='';app.photoRemove=false;
  if(!file.type.startsWith('image/')){app.ai.error='画像ファイルを選んでください（JPEG/PNG推奨）。';render();return;}
  if(file.size>20*1024*1024){app.ai.error='元の写真が20MBを超えています。小さめの写真を選んでください。';render();return;}
  try{
@@ -197,7 +250,14 @@ async function choosePhoto(file){
   const max=1400,ratio=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*ratio));c.height=Math.max(1,Math.round(img.naturalHeight*ratio));c.getContext('2d').drawImage(img,0,0,c.width,c.height);
   let data=c.toDataURL('image/jpeg',.78);if(data.length>1000000)data=c.toDataURL('image/jpeg',.55);
   if(data.length>1000000)throw Error('画像を縮小できませんでした。写真を撮り直してください。');
-  app.ai.dataUrl=data;app.ai.previewName=file.name;render();
+  // Drive保存用は表示専用の軽量画像。AI用の高解像度画像とは分離する。
+  const sm=Math.min(1,760/Math.max(img.naturalWidth,img.naturalHeight)),sc=document.createElement('canvas');
+  sc.width=Math.max(1,Math.round(img.naturalWidth*sm));sc.height=Math.max(1,Math.round(img.naturalHeight*sm));
+  sc.getContext('2d').drawImage(img,0,0,sc.width,sc.height);
+  let small=sc.toDataURL('image/jpeg',.72);
+  if(small.length>450000)small=sc.toDataURL('image/jpeg',.48);
+  if(small.length>650000)throw Error('画像を縮小できませんでした。別の写真を選んでください。');
+  app.ai.dataUrl=data;app.ai.saveDataUrl=small;app.ai.previewName=file.name;render();
  }catch(err){app.ai.error=err.message||'画像の読み込みに失敗しました。';render();}
 }
 async function analyzePhoto(){
@@ -235,26 +295,30 @@ async function analyzePhoto(){
 function csvExport(){if(!app.loaded){alertMsg('まずGoogleから履歴を読み込んでください。','warn');return;}
 const rows=[['服用日','時間帯','サプリ名','数量（粒）']];Object.keys(app.logs).sort().forEach(date=>{TIMES.forEach(t=>{Object.entries(app.logs[date]?.[t.id]||{}).forEach(([id,n])=>{if(Number(n)>0){const name=app.supplements.find(s=>s.id===id)?.name||id;rows.push([date,t.name,name,n]);}});});});
 const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');const a=document.createElement('a'),u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.href=u;a.download='SupplementHistory_'+todayDate()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),20000);alertMsg('CSVを保存しました。','good');}
-function shiftDay(d){const x=new Date(app.date+'T12:00:00');x.setDate(x.getDate()+d);app.date=[x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-');render();}
+function shiftDay(d){const x=new Date(app.date+'T12:00:00');x.setDate(x.getDate()+d);app.date=[x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-');app.calendarMonth=app.date.slice(0,7);render();}
 document.addEventListener('submit',async e=>{if(e.target.id==='gas-form'){await saveGasUrl(e);}if(e.target.id==='supp-form'){await saveSupplement(e);}});
-document.addEventListener('change',e=>{if(e.target.id==='supp-photo'){choosePhoto(e.target.files?.[0]);return;}if(e.target.id==='record-date'&&/^\d{4}-\d\d-\d\d$/.test(e.target.value)){app.date=e.target.value;render();}});
+document.addEventListener('change',e=>{if(e.target.id==='supp-photo'){choosePhoto(e.target.files?.[0]);return;}if(e.target.id==='record-date'&&/^\d{4}-\d\d-\d\d$/.test(e.target.value)){app.date=e.target.value;app.calendarMonth=app.date.slice(0,7);render();}});
 document.addEventListener('click',async e=>{
 const b=e.target.closest('[data-action], [data-tab]');if(!b)return;
 if(b.dataset.tab){app.tab=b.dataset.tab;render();return;}
 const a=b.dataset.action,id=b.dataset.id,t=b.dataset.timing;
-if(a==='today'){app.date=todayDate();app.tab='record';render();}
+if(a==='today'){app.date=todayDate();app.calendarMonth=app.date.slice(0,7);app.tab='record';render();}
+if(a==='month-prev')shiftMonth(-1);
+if(a==='month-next')shiftMonth(1);
+if(a==='calendar-select'){app.date=b.dataset.date;app.calendarMonth=app.date.slice(0,7);render();}
 if(a==='day-prev')shiftDay(-1);
 if(a==='day-next')shiftDay(1);
 if(a==='record')await recordDose(id,t,false);
 if(a==='cancel')await recordDose(id,t,true);
-if(a==='edit'){app.editing=id;app.draft=supplementDraft(app.supplements.find(s=>s.id===id));app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};app.tab='manage';render();window.scrollTo({top:0,behavior:'smooth'});}
-if(a==='edit-cancel'){app.editing=null;app.draft=null;app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};render();}
+if(a==='edit'){app.editing=id;app.draft=supplementDraft(app.supplements.find(s=>s.id===id));app.ai={dataUrl:'',saveDataUrl:'',previewName:'',analyzing:false,error:'',result:null};app.photoRemove=false;app.tab='manage';render();window.scrollTo({top:0,behavior:'smooth'});}
+if(a==='edit-cancel'){app.editing=null;app.draft=null;app.ai={dataUrl:'',saveDataUrl:'',previewName:'',analyzing:false,error:'',result:null};app.photoRemove=false;render();}
 if(a==='delete')await deleteSupplement(id);
+if(a==='photo-remove'){captureDraft();app.ai.dataUrl='';app.ai.saveDataUrl='';app.ai.previewName='';app.ai.result=null;app.photoRemove=true;render();}
 if(a==='analyze')await analyzePhoto();
 if(a==='refresh')await readState();
 if(a==='retry')await retryPending();
 if(a==='csv')csvExport();
-if(a==='jump'){app.date=b.dataset.date;app.tab='record';render();window.scrollTo({top:0,behavior:'smooth'});}
+if(a==='jump'){app.date=b.dataset.date;app.calendarMonth=app.date.slice(0,7);app.tab='record';render();window.scrollTo({top:0,behavior:'smooth'});}
 });
 window.addEventListener('online',()=>{if(app.gasUrl&&!app.busy)readState(true);});
 try{app.pending=JSON.parse(safeStorageGet(PENDING_KEY)||'null');}catch(e){app.pending=null;}
