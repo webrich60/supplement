@@ -1,1495 +1,264 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ビタミン・サプリメント管理</title>
-  <!-- v1.4 写真の下書き保存 / IndexedDB移行 / バックアップ・復元 -->
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translate(-50%, -20px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
-    }
-    .animate-fade-in-down {
-      animation: fadeInDown 0.3s ease-out forwards;
-    }
-    .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    /* スクロールバーを隠さず、操作できる状態を保つ */
-    :root { color-scheme: light; }
-    html { scroll-behavior: smooth; }
-    body { -webkit-tap-highlight-color: transparent; }
-    button { touch-action: manipulation; }
-    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #0d9488; outline-offset: 2px; }
-    .calendar-board { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:2px solid #64748b; border-radius:12px; overflow:hidden; background:#94a3b8; gap:1px; }
-    .calendar-weekday { text-align:center; padding:9px 0; font-size:12px; font-weight:900; background:#e2e8f0; color:#334155; }
-    .calendar-day { min-height:51px; background:#fff; color:#0f172a; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:5px; font-weight:800; font-size:15px; border:2px solid transparent; cursor:pointer; }
-    .calendar-day.is-today { background:#ccfbf1; border-color:#0f766e; }
-    .calendar-day.is-selected { background:#115e59; color:#fff; border-color:#042f2e; }
-    .calendar-day.is-complete:not(.is-selected) { background:#ecfdf5; }
-    .calendar-day:focus-visible { outline:3px solid #0284c7; outline-offset:-3px; }
-    .calendar-dot { height:9px; width:9px; border-radius:50%; display:inline-block; }
-    .calendar-blank { background:#f1f5f9; min-height:51px; }
-    .section-heading { font-size:16px; font-weight:900; color:#0f172a; }
-    @media(min-width:640px) { .calendar-day,.calendar-blank { min-height:66px; } }
-    @media(max-width:370px) { .calendar-day,.calendar-blank { min-height:45px; } .calendar-day { font-size:13px; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6660">
+<title>ビタミン・サプリ管理</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Yu Gothic",Meiryo,sans-serif;color:#172a35;background:#edf3f5;font-size:16px;line-height:1.5}
+*{box-sizing:border-box}body{margin:0;padding-bottom:94px}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible,input:focus-visible{outline:3px solid #f2bf45;outline-offset:2px}
+.header{background:linear-gradient(110deg,#127d74,#09554e);color:white;padding:14px 17px;box-shadow:0 2px 10px #142b3240}
+.header-inner{max-width:780px;margin:auto;display:flex;align-items:center;gap:11px}.brand{font-size:1.15rem;line-height:1.35;flex:1;font-weight:850;letter-spacing:.01em}.brand-icon{font-size:1.45rem}.v{font-size:.74rem;color:#d6fff8;font-weight:700}
+.today{background:#054c47;color:white;border:2px solid #4fd6c6;border-radius:12px;padding:9px 12px;font-weight:800;white-space:nowrap}
+main{max-width:780px;margin:18px auto;padding:0 13px}.card{background:white;border:2px solid #9fb0bd;border-radius:17px;padding:17px;box-shadow:0 2px 5px #253f4912;margin-bottom:14px}.card.teal{border-color:#3cbbad}.card h2,.card h3{margin:0 0 12px;font-weight:850;color:#103f42}h2{font-size:1.2rem}h3{font-size:1.05rem}
+p{margin:8px 0}.small{font-size:.83rem}.muted{color:#4a6070}.bold{font-weight:800}.label{display:block;font-weight:800;margin:7px 0}.input{width:100%;padding:12px;border:2px solid #718999;border-radius:10px;color:#172a35;background:white;min-width:0}.input:focus{border-color:#0f8377}.input.num{width:75px;text-align:center;padding:8px}.line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.between{justify-content:space-between}.row{display:flex;align-items:center;gap:9px}.grow{flex:1;min-width:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:2px solid #0d574f;background:#10665f;color:#fff;border-radius:11px;padding:10px 14px;font-weight:820;min-height:44px;text-align:center}.btn.ghost{background:white;color:#125e56}.btn.dark{background:#1e2c40;border-color:#172238}.btn.red{background:#fff;color:#a22b2b;border-color:#be4242}.btn.full{width:100%}.btn.tiny{min-height:38px;padding:6px 12px;font-size:.88rem}
+.notice{border-radius:10px;padding:11px 13px;border:2px solid #8a9ead;background:#f3f7f9;font-size:.91rem;margin-bottom:13px}.notice.good{border-color:#118673;background:#e6f8f3;color:#10433e}.notice.warn{border-color:#c17d29;background:#fff8e7;color:#684a19}.notice.error{border-color:#b72c32;background:#fff1f0;color:#6d1116}.status{font-weight:800;line-height:1.35}.date-selector{display:flex;align-items:center;justify-content:center;gap:10px}.date-selector .date{font-weight:850;max-width:180px}.arrow{font-size:1.28rem;border:2px solid #688e91;border-radius:10px;background:#fff;width:43px;height:44px;color:#0c5c5b}
+.dose-card{border:2px solid #b0bfc8;border-radius:15px;padding:14px;margin:13px 0}.dose-title{font-weight:900;font-size:1.1rem;color:#174e51}.pill-item{padding:12px 0;border-top:1px solid #c8d3d9}.pill-item:first-of-type{border-top:none}.pill-name{font-weight:850;overflow-wrap:anywhere}.pill-info{font-size:.83rem;color:#4e6472}.amount{text-align:center;font-size:1rem;font-weight:850;color:#204752;min-width:38px}.dose-action{width:100%;margin-top:7px}.recorded{background:#e9faf4;border-color:#159777;color:#07574e}.total{border:2px solid #319e90;border-radius:13px;padding:11px 14px;background:#ecfdf8;font-weight:850;color:#104e48}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #9dadba;display:flex;justify-content:center;gap:2px;padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom));box-shadow:0 -3px 10px #31485b19;z-index:20}.tab{flex:1;max-width:190px;border:0;background:transparent;color:#53667a;border-radius:12px;padding:5px 4px;font-weight:850;font-size:.81rem;min-height:56px}.tab b{display:block;font-size:1.35rem;line-height:1.3}.tab.active{background:#ddf7f0;color:#065c55}
+.empty{padding:18px;background:#f4f7f9;border:1px dashed #9aabb7;border-radius:11px;text-align:center;color:#526572}.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.formgrid label{font-size:.87rem;font-weight:800}.formgrid input{width:100%;max-width:100%}.supp-row{border-top:1px solid #b5c7cf;padding:14px 0}.supp-row:first-child{border-top:none}.history-group{padding:12px 0;border-top:1px solid #d0dadd}.history-date{font-weight:900;color:#0a5e57}.history-line{display:flex;justify-content:space-between;padding:5px 0;gap:10px}.kicker{font-size:.74rem;font-weight:800;color:#47636e;letter-spacing:.03em}.divider{border:0;border-top:1px solid #c8d5de;margin:15px 0}.photo-preview{display:block;max-width:100%;max-height:250px;object-fit:contain;border:2px solid #93b5b0;border-radius:13px;margin:12px auto}.ai-result{border:2px solid #288d80;background:#effbf6;border-radius:12px;padding:13px;margin-top:12px;overflow-wrap:anywhere}.details{border:1px solid #aec1cb;border-radius:11px;padding:11px;margin-top:10px}.details summary{font-weight:850;cursor:pointer;color:#125e56}.details textarea{resize:vertical}.hidden{display:none!important}.spinner{display:inline-block;width:16px;height:16px;border:3px solid #a5e9de;border-top-color:#0d786e;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:5px}@keyframes spin{to{transform:rotate(360deg)}}
+@media(min-width:600px){.brand{font-size:1.5rem}.brand-icon{font-size:1.8rem}.card{padding:23px}.dose-action{width:auto;margin-top:0}.pill-item{display:flex;align-items:center;justify-content:space-between;gap:15px}.tabs{padding-top:9px}}
+</style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900 pb-28 pt-20 select-none">
-
-  <!-- ヘッダー -->
-  <header class="bg-gradient-to-r from-teal-700 via-teal-800 to-emerald-800 text-white p-4 shadow-lg fixed top-0 left-0 w-full z-30 flex items-center justify-between border-b-4 border-teal-900 px-4">
-    <div class="flex items-center min-w-0">
-      <i data-lucide="calendar-check-2" class="mr-2 h-6 w-6 sm:h-7 sm:w-7 shrink-0 text-yellow-300 drop-shadow-md"></i>
-      <h1 class="text-sm sm:text-lg md:text-xl font-black tracking-wide leading-tight">ビタミン・サプリメント管理</h1>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <button type="button" onclick="goToToday()" aria-label="今日の記録へ" class="bg-teal-900/70 hover:bg-teal-950 px-2 sm:px-3 py-2 rounded-lg text-xs font-black cursor-pointer border border-teal-500 transition">今日へ</button>
-      <button type="button" onclick="switchTab('settings'); window.scrollTo(0,0)" aria-label="設定画面を開く" title="GAS URL・接続設定" class="flex items-center justify-center w-10 h-10 bg-white/15 hover:bg-white/25 rounded-xl border-2 border-teal-300 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-300">
-        <i data-lucide="settings" class="w-6 h-6"></i>
-      </button>
-    </div>
-  </header>
-
-  <!-- メインコンテンツ領域 -->
-  <main class="max-w-3xl mx-auto px-3 sm:px-5 py-4" id="main-content"></main>
-
-  <!-- トースト通知 -->
-  <div id="toast" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 border-2 border-teal-400 font-black animate-fade-in-down whitespace-nowrap text-sm flex items-center gap-2">
-    <i data-lucide="info" class="w-4 h-4 text-teal-400"></i>
-    <span id="toast-msg"></span>
-  </div>
-
-  <!-- 下部ナビゲーション -->
-  <nav class="fixed bottom-0 w-full bg-white border-t-2 border-slate-400 flex justify-around p-2 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.06)] pb-safe">
-    <button onclick="switchTab('log')" id="nav-log" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
-      <i data-lucide="calendar-days" class="w-6 h-6 mb-1"></i>
-      <span class="text-[11px] font-black tracking-tight">記録</span>
-    </button>
-    <button onclick="switchTab('manage')" id="nav-manage" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
-      <i data-lucide="pill" class="w-6 h-6 mb-1"></i>
-      <span class="text-[11px] font-black tracking-tight">サプリ管理</span>
-    </button>
-    <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
-      <i data-lucide="clipboard-list" class="w-6 h-6 mb-1"></i>
-      <span class="text-[11px] font-black tracking-tight">既往歴</span>
-    </button>
-    <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
-      <i data-lucide="bot-message-square" class="w-6 h-6 mb-1"></i>
-      <span class="text-[11px] font-black tracking-tight">AI相談・分析</span>
-    </button>
-    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center flex-1 py-1 transition-all duration-200 text-slate-500">
-      <i data-lucide="settings-2" class="w-6 h-6 mb-1"></i>
-      <span class="text-[11px] font-black tracking-tight">設定</span>
-    </button>
-  </nav>
-
-  <script>
-    const formatDate = (date) => {
-      const d = new Date(date);
-      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-      return d.toISOString().split('T')[0];
-    };
-    
-    function resizeImage(dataUrl, maxWidth = 500, maxHeight = 500) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            }
-          } else {
-            if (height > maxHeight) {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.6));
-        };
-        img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
-        img.src = dataUrl;
-      });
-    }
-
-    // v1.4: 以前の localStorage データを読み取ったうえで、写真を含む本体を
-    // IndexedDB に保存します。画像を消して容量不足を回避する旧処理は使用しません。
-    const DB_NAME = 'supplement-care-storage';
-    const DB_VERSION = 1;
-    const SNAPSHOT_KEY = 'supplement_app_v2_snapshot';
-    const FALLBACK_KEY = 'supplement_app_v2_text_backup';
-    let storageDB = null;
-    let saveQueue = Promise.resolve(true);
-    let draftSaveTimer = null;
-    let dataReady = false;
-
-    function safeLocalGet(key) {
-      try { return localStorage.getItem(key); } catch (err) { return null; }
-    }
-    function safeJsonParse(raw, fallback) {
-      if (raw === null || raw === undefined) return fallback;
-      try { return JSON.parse(raw); } catch (err) { console.warn('データ読み込み失敗:', err); return fallback; }
-    }
-    function normalizeSupplements(items) {
-      if (!Array.isArray(items)) return [];
-      return items.filter(x => x && typeof x === 'object').map((s, idx) => {
-        const morning = Number(s.timingSchedule?.morning ?? (s.defaultDosage ? Math.ceil(s.defaultDosage / 2) : 1)) || 0;
-        const afternoon = Number(s.timingSchedule?.afternoon ?? 0) || 0;
-        const evening = Number(s.timingSchedule?.evening ?? (s.defaultDosage ? Math.floor(s.defaultDosage / 2) : 1)) || 0;
-        return {
-          ...s,
-          id: String(s.id || `recovered-${idx}`),
-          name: String(s.name || '名称未設定'),
-          recommendedDosage: Math.max(0, Math.round(Number(s.recommendedDosage) || morning + afternoon + evening || 1)),
-          timingSchedule: {morning:Math.max(0,Math.round(morning)), afternoon:Math.max(0,Math.round(afternoon)), evening:Math.max(0,Math.round(evening))},
-          image: typeof s.image === 'string' ? s.image : null
-        };
-      });
-    }
-    function normalizeLogs(raw) {
-      const output = {};
-      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return output;
-      Object.keys(raw).forEach(date => {
-        const day = raw[date];
-        if (!day || typeof day !== 'object') return;
-        if (day.morning || day.afternoon || day.evening) {
-          output[date] = {morning:day.morning || {}, afternoon:day.afternoon || {}, evening:day.evening || {}};
-        } else {
-          output[date] = {morning:{...day}, afternoon:{}, evening:{}};
-        }
-      });
-      return output;
-    }
-    function normalizeDailyNotes(notes) {
-      if (!notes || typeof notes !== 'object' || Array.isArray(notes)) return {};
-      return Object.fromEntries(Object.entries(notes).filter(([date, text]) =>
-        /^\d{4}-\d{2}-\d{2}$/.test(date) && typeof text === 'string' && text.trim()
-      ));
-    }
-    function legacySnapshot() {
-      // バージョンアップ前のキーを絶対に先に消さず、既存データを移行する。
-      const suppsRaw = safeLocalGet('supplements');
-      const logRaw = safeLocalGet('logs');
-      const newer = safeJsonParse(safeLocalGet(SNAPSHOT_KEY), null);
-      const textOnly = safeJsonParse(safeLocalGet(FALLBACK_KEY), null);
-      if (newer && Array.isArray(newer.supplements)) return newer;
-      if (suppsRaw !== null || logRaw !== null || safeLocalGet('medicalHistory') !== null) {
-        return {
-          supplements: safeJsonParse(suppsRaw, []),
-          logs: safeJsonParse(logRaw, {}),
-          medicalHistory: safeLocalGet('medicalHistory') || '',
-          gasUrl: safeLocalGet('gasUrl') || ''
-        };
-      }
-      if (textOnly && Array.isArray(textOnly.supplements)) return textOnly;
-      return {supplements:[], logs:{}, medicalHistory:'', gasUrl:safeLocalGet('gasUrl') || ''};
-    }
-    const initial = legacySnapshot();
-    const state = {
-      activeTab:'log', activeTiming:'all', selectedDate:formatDate(new Date()), calendarDate:new Date(),
-      supplements:normalizeSupplements(initial.supplements), logs:normalizeLogs(initial.logs),
-      dailyNotes:normalizeDailyNotes(initial.dailyNotes),
-      medicalHistory:initial.medicalHistory || '', gasUrl:initial.gasUrl || '',
-      manageForm:{name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'},
-      editingSuppId:null, newSuppImage:null,
-      isAnalyzing:false, aiLoading:false, aiError:'', photoError:'',
-      connectionResult:'',checkingConnection:false,aiReport:'',aiChatHistory:[],
-      aiQuestion:'',isAskingAI:false,
-      storageStatus:'保存先を確認中', storageError:'',
-      pendingSheetLogs:Array.isArray(initial.pendingSheetLogs) ? initial.pendingSheetLogs : [],
-      cloudLogsPending:!!initial.cloudLogsPending
-    };
-
-    function applySnapshot(snapshot, restoreDraft=true) {
-      if (!snapshot || !Array.isArray(snapshot.supplements) || !snapshot.logs || typeof snapshot.logs !== 'object') {
-        throw new Error('データ形式が正しくありません。');
-      }
-      state.supplements = normalizeSupplements(snapshot.supplements);
-      state.logs = normalizeLogs(snapshot.logs);
-      state.dailyNotes = normalizeDailyNotes(snapshot.dailyNotes);
-      state.medicalHistory = typeof snapshot.medicalHistory === 'string' ? snapshot.medicalHistory : '';
-      state.gasUrl = typeof snapshot.gasUrl === 'string' ? snapshot.gasUrl : '';
-      state.cloudRevision = Number(snapshot.cloudRevision) || 0;
-      state.cloudEnabled = !!snapshot.cloudEnabled;
-      state.pendingSheetLogs = Array.isArray(snapshot.pendingSheetLogs) ? snapshot.pendingSheetLogs.slice() : [];
-      state.cloudLogsPending = !!snapshot.cloudLogsPending;
-      if (restoreDraft) {
-        state.manageForm = {...{name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'}, ...(snapshot.draft?.manageForm || {})};
-        state.newSuppImage = snapshot.draft?.image || null;
-        state.editingSuppId = snapshot.draft?.editingSuppId || null;
-        if (state.editingSuppId && !state.supplements.some(s => s.id === state.editingSuppId)) state.editingSuppId = null;
-      }
-    }
-    function makeSnapshot() {
-      return {
-        schemaVersion:2, updatedAt:new Date().toISOString(),
-        supplements:state.supplements.map(s => ({...s})),
-        logs:JSON.parse(JSON.stringify(state.logs)),
-        dailyNotes:{...state.dailyNotes},
-        medicalHistory:state.medicalHistory, gasUrl:state.gasUrl,
-        cloudRevision:state.cloudRevision || 0, cloudEnabled:!!state.cloudEnabled,
-        pendingSheetLogs:state.pendingSheetLogs.slice(), cloudLogsPending:state.cloudLogsPending,
-        draft:{manageForm:{...state.manageForm}, image:state.newSuppImage, editingSuppId:state.editingSuppId}
-      };
-    }
-    function openDB() {
-      return new Promise((resolve,reject) => {
-        if (!('indexedDB' in window)) return reject(new Error('IndexedDBは利用できません'));
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains('records')) db.createObjectStore('records');
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error || new Error('IndexedDB初期化失敗'));
-        request.onblocked = () => reject(new Error('別のタブがデータベースを使用中です'));
-      });
-    }
-    function dbRead(key) {
-      return new Promise((resolve,reject) => {
-        const tx = storageDB.transaction('records','readonly');
-        const req = tx.objectStore('records').get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-      });
-    }
-    function dbWrite(snapshot) {
-      return new Promise((resolve,reject) => {
-        const tx = storageDB.transaction('records','readwrite');
-        const store = tx.objectStore('records');
-        const request = store.get('current');
-        request.onsuccess = () => {
-          if (request.result) store.put(request.result,'previous');
-          store.put(snapshot,'current');
-        };
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error || new Error('IndexedDBへの保存に失敗'));
-        tx.onabort = () => reject(tx.error || new Error('保存処理を中断'));
-      });
-    }
-    async function initializeApp() {
-      try {
-        storageDB = await openDB();
-        const record = await dbRead('current');
-        if (record && Array.isArray(record.supplements)) {
-          applySnapshot(record);
-        } else {
-          await dbWrite(makeSnapshot()); // 旧データを画像込みで初回移行
-        }
-        state.storageStatus = '保存先：この端末内（IndexedDB）';
-      } catch (err) {
-        console.warn('IndexedDB:',err);
-        storageDB = null;
-        state.storageStatus = '保存先：ブラウザ内の代替保存';
-        state.storageError = '保護ストレージを利用できません。データのバックアップを取得してください。';
-      }
-      // 同期キーは写真/服用記録のバックアップとは別の保存先から復元する。
-      // localStorageが消えていてもIndexedDBに残っていれば復元できる。
-      await restoreCloudKey();
-      dataReady = true;
-      render();
-      resumeHistorySync();
-    }
-    async function writeSnapshot(snapshot) {
-      let dbOK = false, localOK = false;
-      if (storageDB) {
-        try { await dbWrite(snapshot); dbOK = true; } catch (err) { console.error('IndexedDB保存失敗:',err); }
-      }
-      try {
-        // 一括バックアップが書けた場合にのみ、従来キーへも互換保存する。
-        // 容量不足では古い写真を null で上書きすることを絶対にしない。
-        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
-        localOK = true;
-        try {
-          localStorage.setItem('supplements', JSON.stringify(snapshot.supplements));
-          localStorage.setItem('logs', JSON.stringify(snapshot.logs));
-          localStorage.setItem('medicalHistory', snapshot.medicalHistory);
-          localStorage.setItem('gasUrl', snapshot.gasUrl);
-        } catch (compatError) { console.warn('従来キーの互換保存:', compatError); }
-      } catch (err) {
-        console.warn('localStorage容量制限。写真の削除は行いません:', err);
-        try {
-          const compact = {...snapshot,
-            supplements:snapshot.supplements.map(s => ({...s,image:null})),
-            draft:{...snapshot.draft,image:null}};
-          localStorage.setItem(FALLBACK_KEY, JSON.stringify(compact));
-        } catch (ignore) {}
-      }
-      const ok = dbOK || localOK;
-      if (!ok) {
-        state.storageError = '保存できませんでした。画面を閉じる前にバックアップを取得してください。ブラウザの空き容量・プライベートモードを確認してください。';
-        state.storageStatus = '保存エラー';
-      } else {
-        state.storageError = '';
-        state.storageStatus = dbOK ? '保存先：この端末内（IndexedDB）' : '保存先：ブラウザ内の代替保存';
-      }
-      return ok;
-    }
-    function saveData() {
-      if (!dataReady) return Promise.resolve(false);
-      const snapshot = makeSnapshot();
-      const result = saveQueue.catch(() => false).then(() => writeSnapshot(snapshot));
-      saveQueue = result;
-      return result;
-    }
-    function scheduleDraftSave() {
-      clearTimeout(draftSaveTimer);
-      draftSaveTimer = setTimeout(() => {saveData().then(ok => {if (!ok) showToast('下書きを保存できませんでした');});},500);
-    }
-    function resetDraft() {
-      state.manageForm = {name:'',recommendedDosage:'',morning:'0',afternoon:'0',evening:'0'};
-      state.newSuppImage = null;
-      state.editingSuppId = null;
-      state.photoError = '';
-    }
-    function downloadBackup() {
-      const backup = {...makeSnapshot(), kind:'supplement-care-backup', exportedAt:new Date().toISOString()};
-      const blob = new Blob([JSON.stringify(backup,null,2)],{type:'application/json;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ビタミン・サプリメント管理_バックアップ_${formatDate(new Date())}.json`;
-      document.body.appendChild(link); link.click(); link.remove();
-      setTimeout(() => URL.revokeObjectURL(url),30000);
-      showToast('バックアップのダウンロードを開始しました。保存先を確認してください');
-    }
-    async function restoreHistory(recovery) {
-      const {date, supplements, logs} = recovery;
-      if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-          !Array.isArray(supplements) || !logs || typeof logs !== 'object') {
-        throw new Error('服用履歴の復元ファイルの形式が違います。');
-      }
-
-      const before = makeSnapshot();
-      const existingIds = new Set(before.supplements.map(item => item.id));
-      const additions = normalizeSupplements(supplements).filter(item => {
-        if (existingIds.has(item.id)) return false;
-        existingIds.add(item.id);
-        return true;
-      });
-      const mergedLogs = normalizeLogs(before.logs);
-      const day = mergedLogs[date] || {morning:{}, afternoon:{}, evening:{}};
-      let restored = 0;
-      for (const timing of ['morning', 'afternoon', 'evening']) {
-        for (const [id, amount] of Object.entries(logs[timing] || {})) {
-          if (existingIds.has(id) && Number.isSafeInteger(amount) && amount > 0 &&
-              !Object.hasOwn(day[timing], id)) {
-            day[timing][id] = amount;
-            restored++;
-          }
-        }
-      }
-
-      if (additions.length || restored) {
-        if (!confirm(`${date} の履歴から、未登録の品目${additions.length}件と未登録の服用記録${restored}件を追加します。続けますか？`)) return;
-        applySnapshot({...before, supplements:[...before.supplements, ...additions],
-          logs:{...mergedLogs, [date]:day}});
-        if (!(await saveData())) {
-          applySnapshot(before);
-          throw new Error('復元内容を端末に保存できませんでした。');
-        }
-      }
-      state.activeTab = 'log';
-      state.activeTiming = 'all';
-      selectDate(date);
-      showToast(additions.length || restored
-        ? `品目${additions.length}件・服用記録${restored}件を復元しました`
-        : '追加する品目・服用記録はありませんでした');
-    }
-
-    async function importBackup(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      try {
-        if (file.size > 60 * 1024 * 1024) throw new Error('ファイルが大きすぎます（上限60MB）。');
-        const backup = JSON.parse(await file.text());
-        if (backup?.kind === 'supplement-care-history-recovery') {
-          await restoreHistory(backup);
-          return;
-        }
-        if (!backup || !Array.isArray(backup.supplements) || !backup.logs || typeof backup.logs !== 'object') {
-          throw new Error('バックアップファイルの形式が違います。');
-        }
-        if (!confirm(`バックアップから${backup.supplements.length}件の登録を復元します。現在のデータは置き換わります。よろしいですか？`)) return;
-        downloadBackup(); // 誤操作に備え、復元前のデータを先に書き出す
-        const current = makeSnapshot();
-        applySnapshot({...backup,cloudEnabled:false,cloudRevision:0,
-          pendingSheetLogs:current.pendingSheetLogs,cloudLogsPending:false});
-        const ok = await saveData();
-        if (!ok) {applySnapshot(current);throw new Error('保存に失敗しました。元のデータに戻しました。');}
-        showToast('データを復元しました');
-        render();
-      } catch (error) { alert('復元できませんでした：' + error.message); }
-      finally {event.target.value='';}
-    }
-
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toast-msg').innerText = message;
-      toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 3000);
-    }
-
-    function switchTab(tabId) {
-      state.activeTab = tabId;
-      render();
-    }
-
-    function changeMonth(delta) {
-      const d = new Date(state.calendarDate);
-      // 31日から月移動しても翌々月へ飛ばないようにする
-      state.calendarDate = new Date(d.getFullYear(), d.getMonth() + delta, 1);
-      render();
-    }
-
-    function selectDate(dateStr) {
-      state.selectedDate = dateStr;
-      state.calendarDate = new Date(dateStr);
-      render();
-    }
-
-    function goToToday() {
-      state.selectedDate = formatDate(new Date());
-      state.calendarDate = new Date();
-      render();
-    }
-
-    function updateDailyNote(text) {
-      const date = state.selectedDate;
-      if (text.trim()) state.dailyNotes[date] = text;
-      else delete state.dailyNotes[date];
-    }
-
-    async function saveDailyNote() {
-      const saved = await saveData();
-      showToast(saved ? 'その日のメモを保存しました' : 'メモを保存できませんでした');
-    }
-
-    function setFilterTiming(timing) {
-      state.activeTiming = timing;
-      render();
-    }
-
-    function ensureDayLog(dateStr) {
-      if (!state.logs[dateStr]) state.logs[dateStr] = { morning: {}, afternoon: {}, evening: {} };
-      if (!state.logs[dateStr].morning) state.logs[dateStr].morning = {};
-      if (!state.logs[dateStr].afternoon) state.logs[dateStr].afternoon = {};
-      if (!state.logs[dateStr].evening) state.logs[dateStr].evening = {};
-    }
-
-    async function handleToggleLog(suppId, timing) {
-      ensureDayLog(state.selectedDate);
-      const supp = state.supplements.find(s => s.id === suppId);
-      if (!supp) return;
-
-      const plannedAmount = supp.timingSchedule[timing] || 0;
-      const currentLog = state.logs[state.selectedDate][timing][suppId];
-      let newAmount;
-
-      if (currentLog !== undefined && currentLog > 0) {
-        delete state.logs[state.selectedDate][timing][suppId];
-        newAmount = 0;
-        showToast(`「${safeHtml(supp.name)}」を未記録に戻しました`);
-      } else {
-        newAmount = plannedAmount > 0 ? plannedAmount : 1;
-        state.logs[state.selectedDate][timing][suppId] = newAmount;
-        showToast(`「${safeHtml(supp.name)}」を ${newAmount}粒 記録しました`);
-      }
-
-      await saveLogChange(supp, timing, newAmount);
-    }
-
-    async function handleCustomDosageChange(suppId, timing, val) {
-      const supp = state.supplements.find(s => s.id === suppId);
-      if (!supp) return;
-      ensureDayLog(state.selectedDate);
-      const logs = state.logs[state.selectedDate][timing];
-      const amount = Math.max(0, Math.round(Number(val) || 0));
-      if (amount === Number(logs[suppId] || 0)) return;
-      if (amount === 0) delete logs[suppId];
-      else logs[suppId] = amount;
-      await saveLogChange(supp, timing, amount);
-    }
-
-    async function saveLogChange(supp, timing, amount) {
-      if (state.gasUrl.trim()) {
-        state.pendingSheetLogs.push({
-          action:'log', date:state.selectedDate, timing, timingLabel:getTimingLabel(timing),
-          suppId:supp.id, suppName:supp.name, amount, unit:'粒'
-        });
-      }
-      cloudLocalChanges++;
-      if (state.cloudEnabled) state.cloudLogsPending = true;
-      const saved = await saveData();
-      render();
-      if (!saved) { showToast('服用記録を端末に保存できませんでした'); return; }
-      scheduleCloudUpload();
-      if (!sheetLogError) void sendSheetLogs();
-    }
-
-    let sheetLogSending = false;
-    let sheetLogError = '';
-    let sheetLogSent = false;
-
-    function refreshSheetLogStatus() {
-      const panel = document.getElementById('sheet-log-status');
-      if (panel) panel.innerHTML = sheetLogStatusHTML();
-    }
-
-    function sheetLogStatusHTML() {
-      const count = state.pendingSheetLogs.length;
-      const status = sheetLogSending ? '送信中…' : count ? `保留中：${count}件`
-        : sheetLogSent ? 'スプレッドシートへの送信を確認しました' : '未送信の記録はありません';
-      return `<p role="status" class="text-sm font-bold text-slate-900">${status}</p>
-        ${sheetLogError ? errorPanel(sheetLogError,'従来の服用履歴への送信エラー') : ''}
-        ${count ? `<button type="button" onclick="sendSheetLogs()" ${sheetLogSending?'disabled':''}
-          class="mt-2 w-full rounded-xl border-2 border-teal-700 py-2 text-sm font-black text-teal-900 disabled:opacity-50">未送信の服用履歴を送る</button>` : ''}`;
-    }
-
-    async function sendSheetLogs() {
-      if (!dataReady || sheetLogSending || !state.pendingSheetLogs.length) return;
-      sheetLogSending = true;
-      sheetLogError = '';
-      refreshSheetLogStatus();
-      let destination;
-      try {
-        destination = normalizeGasUrl(state.gasUrl);
-        while (state.pendingSheetLogs.length) {
-          if (!(await saveQueue)) throw new Error('端末の保存に失敗しました。空き容量を確認してください。');
-          const entry = state.pendingSheetLogs[0];
-          if (normalizeGasUrl(state.gasUrl) !== destination) break;
-          const result = await gasRequest({...entry,cloudKey:state.cloudKey.trim()});
-          if (result.status !== 'success') throw new Error('GASから服用履歴の保存完了を確認できませんでした。');
-          if (state.pendingSheetLogs[0] !== entry) break;
-          state.pendingSheetLogs.shift();
-          sheetLogSent = true;
-          if (!(await saveData())) {
-            throw new Error('シートには書き込み済みですが、端末に送信済みの状態を保存できませんでした。');
-          }
-          refreshSheetLogStatus();
-        }
-      } catch (error) {
-        sheetLogError = explainError(error);
-        if (state.activeTab !== 'settings') showToast('服用履歴の送信を確認できません。設定で確認できます');
-      } finally {
-        sheetLogSending = false;
-        refreshSheetLogStatus();
-      }
-    }
-
-    function resumeHistorySync() {
-      if (!dataReady) return;
-      if (!sheetLogError && state.gasUrl.trim()) void sendSheetLogs();
-      if (state.cloudLogsPending) scheduleCloudUpload();
-    }
-
-    function getTimingLabel(timing) {
-      return timing === 'morning' ? '朝' : (timing === 'afternoon' ? '昼' : '夕・夜');
-    }
-
-    async function handleImageChange(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) return showToast('画像ファイルを選択してください');
-      try {
-        const dataUrl = await new Promise((resolve,reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('画像ファイルを読み込めませんでした'));
-          reader.readAsDataURL(file);
-        });
-        // 縮小に失敗しても元の画像をできるだけ保持する。
-        try { state.newSuppImage = await resizeImage(dataUrl, 500, 500); }
-        catch (err) { state.newSuppImage = dataUrl; }
-        state.photoError='';
-        const ok = await saveData();
-        if (!ok) state.photoError='写真の下書き保存に失敗しました。容量・ブラウザ設定を確認してください。';
-        else showToast('写真を下書き保存しました。AI解析できなくても残ります');
-        render();
-      } catch(err) {state.photoError='画像の読み込みに失敗しました: ' + err.message;render();}
-    }
-
-    function safeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    function normalizeGasUrl(raw) {
-      let url = (raw || '').trim();
-      if (/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/edit/.test(url)) url = url.replace(/\/edit.*$/, '/exec');
-      if (!/^https:\/\/script\.google\.com\/macros\/s\/[^\s/?]+\/exec(?:\?.*)?$/.test(url)) {
-        throw new Error('GAS_URL: GASのWebアプリURLが正しくありません。デプロイ画面の「ウェブアプリ」URL（/execで終わるURL）を設定してください。');
-      }
-      return url;
-    }
-
-    function explainError(error) {
-      const msg = error?.message || String(error);
-      if (/Failed to fetch|NetworkError|Load failed|fetch failed|CORS/i.test(msg))
-        return 'NETWORK: GASへの通信に失敗しました。GASをWebアプリとしてデプロイし、アクセスできるユーザーの設定と/execのURLを確認してください。ブラウザの接続制限でも発生します。詳細: ' + msg;
-      return msg;
-    }
-
-    async function gasRequest(payload) {
-      const url = normalizeGasUrl(state.gasUrl);
-      if(payload.action === 'gemini' && state.cloudKey) payload={...payload,cloudKey:state.cloudKey.trim()};
-      let response;
-      try {
-        response = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
-      } catch(error) { throw new Error(explainError(error)); }
-      const raw = await response.text();
-      if (!response.ok) throw new Error('HTTP_' + response.status + ': GAS応答エラー。アクセス権限・デプロイ設定を確認してください。');
-      let result;
-      try {result = JSON.parse(raw);} catch(e) {
-        throw new Error('GAS_RESPONSE: GASからJSON以外の応答が届きました。ログイン画面・権限エラー・古いデプロイの可能性があります。応答冒頭: ' + raw.replace(/<[^>]*>/g,' ').slice(0,180));
-      }
-      if (result.status === 'error' || result.error) {
-        const problem = result.message || result.error?.message || (typeof result.error === 'string' && result.error) || '不明なAPIエラー';
-        const code = result.code || (payload.action === 'gemini' ? 'GEMINI_ERROR' : 'GAS_ERROR');
-        const error = new Error(String(problem).startsWith(code + ':') ? problem : code + ': ' + problem);
-        error.code = code;
-        throw error;
-      }
-      return result;
-    }
-
-    // v1.5.1: 同期キーはバックアップJSONとGitHubに含めず、端末内の
-    // localStorage + IndexedDB にそれぞれ保存する。サイトデータ消去には耐えられない。
-    const CLOUD_KEY_LOCAL = 'supplement_cloud_secret_v1'; // 旧版との互換
-    const CLOUD_KEY_LOCAL_V2 = 'supplement_cloud_secret_v2';
-    const CLOUD_KEY_DB_ID = 'cloudSecret';
-    const VALID_CLOUD_KEY = /^[a-f0-9]{64}$/i;
-
-    function parseCloudKeyRecord(raw) {
-      if (!raw) return null;
-      try {
-        const record = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        if (record && VALID_CLOUD_KEY.test(String(record.key || ''))) {
-          return {key:String(record.key).trim(),savedAt:Number(record.savedAt)||0};
-        }
-      } catch(ignore) {}
-      return null;
-    }
-    function readLocalCloudKeyRecord() {
-      const latest = parseCloudKeyRecord(safeLocalGet(CLOUD_KEY_LOCAL_V2));
-      if (latest) return latest;
-      const old = (safeLocalGet(CLOUD_KEY_LOCAL) || '').trim();
-      return VALID_CLOUD_KEY.test(old) ? {key:old,savedAt:0} : null;
-    }
-    function dbSaveCloudKey(record) {
-      return new Promise((resolve,reject) => {
-        if (!storageDB) return reject(new Error('IndexedDBを開けません'));
-        const tx = storageDB.transaction('records','readwrite');
-        tx.objectStore('records').put(record,CLOUD_KEY_DB_ID);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error || new Error('IndexedDB保存失敗'));
-        tx.onabort = () => reject(tx.error || new Error('IndexedDB保存中断'));
-      });
-    }
-
-    state.cloudKey = readLocalCloudKeyRecord()?.key || '';
-    state.cloudKeySaveStatus = state.cloudKey ? '以前の保存キーを確認中…' : '同期キーは未設定です';
-    state.cloudEnabled = !!initial.cloudEnabled;
-    state.cloudRevision = Number(initial.cloudRevision) || 0;
-    state.cloudStatus = '';
-    state.cloudError = '';
-    state.cloudBusy = false;
-    state.cloudConflict = false;
-    let cloudSyncTimer = null;
-    let cloudInFlight = false;
-    let cloudLocalChanges = 0;
-
-    async function restoreCloudKey() {
-      const local = readLocalCloudKeyRecord();
-      let indexed = null;
-      if (storageDB) {
-        try { indexed = parseCloudKeyRecord(await dbRead(CLOUD_KEY_DB_ID)); }
-        catch (e) { console.warn('同期キーのIndexedDB読込失敗（キーは表示しません）:',e?.name); }
-      }
-      // 日時付きの新しいキーを優先。旧版のキーは初回移行で読み込む。
-      const selected = indexed && (!local || indexed.savedAt >= local.savedAt) ? indexed : local;
-      state.cloudKey = selected?.key || '';
-      if (!selected) {
-        state.cloudKeySaveStatus = '未設定：64文字のキーを入力して保存してください';
-        return;
-      }
-      const where = indexed?.key === selected.key ? '端末の保護ストレージ' : 'ブラウザの保存領域';
-      state.cloudKeySaveStatus = '保存済みの同期キーを'+where+'から復元しました';
-      // IndexedDB内に有効なキーがなければ、旧版のlocalStorageからコピーして保護する。
-      if (storageDB && (!indexed || indexed.key !== selected.key)) {
-        try { await dbSaveCloudKey(selected); }
-        catch (e) { console.warn('同期キー移行に失敗（内容は表示しません）:',e?.name); }
-      }
-      // localStorageが消えていた場合は復元。再起動でも二重化を保つ。
-      if (!local || local.key !== selected.key) {
-        try {
-          localStorage.setItem(CLOUD_KEY_LOCAL_V2,JSON.stringify(selected));
-          localStorage.setItem(CLOUD_KEY_LOCAL,selected.key);
-        } catch(ignore) {}
-      }
-    }
-
-    async function rememberCloudKey() {
-      const input = document.getElementById('sync-secret');
-      const key = String(input ? input.value : state.cloudKey).trim();
-      if (!VALID_CLOUD_KEY.test(key)) {
-        state.cloudError = '同期キーはGASで発行した64文字の英数字（16進数）を入力してください。';
-        state.cloudKeySaveStatus = '保存していません（入力内容を確認してください）';
-        render();return;
-      }
-      state.cloudKey = key;
-      state.cloudError = '';
-      const record = {key,savedAt:Date.now()};
-      let localOk=false, dbOk=false;
-      try {
-        localStorage.setItem(CLOUD_KEY_LOCAL_V2,JSON.stringify(record));
-        localStorage.setItem(CLOUD_KEY_LOCAL,key);
-        localOk = readLocalCloudKeyRecord()?.key === key;
-      } catch(e) {console.warn('同期キーlocalStorage保存失敗:',e?.name);}
-      if (storageDB) {
-        try {
-          await dbSaveCloudKey(record);
-          dbOk = parseCloudKeyRecord(await dbRead(CLOUD_KEY_DB_ID))?.key === key;
-        } catch(e) {console.warn('同期キーIndexedDB保存失敗:',e?.name);}
-      }
-      if (localOk && dbOk) {
-        state.cloudKeySaveStatus = '保存確認済み：ブラウザ＋保護ストレージ（2か所）';
-        showToast('同期キーを2か所に保存しました');
-      } else if (localOk || dbOk) {
-        state.cloudKeySaveStatus = '一部のみ保存：スマホを閉じた後は再確認が必要';
-        state.cloudError = '同期キーを一方の保存領域にしか保存できませんでした。ブラウザのプライベートモード・サイトデータ自動削除設定をご確認ください。';
-      } else {
-        state.cloudKeySaveStatus = '保存失敗：この画面を閉じるとキーが消える可能性があります';
-        state.cloudError = 'このブラウザでは同期キーを端末に保存できません。Chromeの通常タブでGitHub PagesのURLを直接開いて再度お試しください。';
-      }
-      render();
-      if (localOk || dbOk) {
-        sheetLogError = '';
-        resumeHistorySync();
-      }
-    }
-    function cloudRequest(action,extra={}) {
-      const key = state.cloudKey.trim();
-      if(!/^[a-f0-9]{64}$/i.test(key)) throw new Error('同期キーは、GASでsetupCloudSync()を実行した際に表示された64文字のキーです。');
-      return gasRequest({action,cloudKey:key,...extra});
-    }
-    async function checkCloudStatus() {
-      if (state.cloudBusy) return;
-      state.cloudBusy=true;state.cloudError='';state.cloudStatus='';render();
-      try {
-        const r=await cloudRequest('cloudStatus');
-        if (r.status !== 'success' || typeof r.hasCloudData !== 'boolean' ||
-            r.revision == null || !Number.isSafeInteger(Number(r.revision))) {
-          throw new Error('接続先のGASがクラウド同期の応答を返していません。同期対応のGASをデプロイし、設定の /exec URL を確認してください。');
-        }
-        state.cloudStatus=r.hasCloudData ? `Google側にデータがあります（改訂${r.revision}、${r.updatedAt}）。この端末は改訂${state.cloudRevision}です。` : 'Google側はまだ空です。まず「Googleに保存」を押してください。';
-      } catch(e) {state.cloudError=explainError(e);}
-      finally {state.cloudBusy=false;render();}
-    }
-    function scheduleCloudUpload() {
-      if (!state.cloudEnabled || !state.cloudKey || !state.gasUrl) return;
-      cloudLocalChanges++;
-      clearTimeout(cloudSyncTimer);
-      cloudSyncTimer=setTimeout(()=>pushCloudData(false),1800);
-    }
-    async function saveTimingRecords(timing) {
-      const label = timing === 'evening' ? '夜' : getTimingLabel(timing);
-      const date = state.selectedDate;
-      if (state.cloudBusy) return;
-      if (!(await saveData())) {
-        showToast(label + 'の記録を端末に保存できませんでした');
-        return;
-      }
-      await pushCloudData(true, date + ' ' + label + 'の記録');
-    }
-
-    async function pushCloudData(manual=true, label='') {
-      if(state.cloudBusy || cloudInFlight) {
-        if(manual) showToast('同期処理中です。完了をお待ちください');
-        else {clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),2500);}
-        return;
-      }
-      clearTimeout(cloudSyncTimer);
-      cloudInFlight=true;
-      state.cloudBusy=true;
-      state.cloudError='';
-      state.cloudStatus='';
-      render();
-      let seq=cloudLocalChanges;
-      try {
-        if (!(await saveQueue)) throw new Error('端末の保存に失敗しました。');
-        seq=cloudLocalChanges;
-        // 下書きは端末のみ。登録済みの写真・服用記録・既往歴をGoogleに保存する。
-        const data=makeSnapshot();
-        const r=await cloudRequest('cloudPush',{expectedRevision:state.cloudRevision,snapshot:{supplements:data.supplements,logs:data.logs,medicalHistory:data.medicalHistory}});
-        const revision=Number(r.revision);
-        if (r.status === 'success' && r.revision == null) {
-          throw new Error('接続先のGASがクラウド保存の改訂番号を返していません。同期対応のGASをデプロイし、設定の /exec URL を確認してください。');
-        }
-        if (r.status !== 'success' || !Number.isSafeInteger(revision) || revision <= state.cloudRevision) {
-          throw new Error('GASからクラウド保存の完了を確認できませんでした。');
-        }
-        state.cloudRevision=revision;
-        state.cloudEnabled=true;
-        if (seq === cloudLocalChanges) state.cloudLogsPending=false;
-        try {localStorage.setItem(CLOUD_KEY_LOCAL,state.cloudKey.trim());} catch(ignore) {}
-        if (!(await saveData())) throw new Error('Google側に保存済みですが、端末に同期状態を保存できませんでした。');
-        state.cloudStatus=`Google保存成功：改訂${r.revision}（画像${r.photoUploads}件、登録変更${r.supplementChanges}件、服用変更${r.changedLogs}件）`;
-        state.cloudConflict=false;
-        if(manual)showToast(label ? label + 'を含むデータをGoogleに保存しました' : 'Google Drive・スプレッドシートへ保存しました');
-      } catch(e) {
-        state.cloudConflict=e.code === 'CLOUD_CONFLICT' || /^CLOUD_CONFLICT:/.test(e.message || '');
-        state.cloudError=state.cloudConflict
-          ? 'スマホとGoogle側で保存済みの版が異なります。「クラウドと統合して保存」で両方のデータを統合してから再試行できます。'
-          : '端末内のデータは残っています。Googleへの保存を確認できませんでした。' + explainError(e);
-        if(manual && state.activeTab !== 'log' && state.activeTab !== 'settings') showToast('Googleへの保存を確認できませんでした。設定で詳細を確認できます');
-      } finally {
-        state.cloudBusy=false;cloudInFlight=false;render();
-        if(!state.cloudError && seq!==cloudLocalChanges) {
-          clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(()=>pushCloudData(false),1800);
-        }
-      }
-    }
-    function meaningfulItem_(item) {
-      return JSON.stringify([item.name,item.recommendedDosage,item.timingSchedule,item.image||null]);
-    }
-    function mergeCloudSnapshot_(local,remote) {
-      const merged={...local,supplements:normalizeSupplements(local.supplements),logs:normalizeLogs(local.logs)};
-      const byId=new Map(merged.supplements.map(s=>[s.id,s]));
-      const mapId={};let conflicts=0,added=0;
-      const remoteById=new Map((remote.supplements||[]).map(s=>[s.id,s]));
-      function cloudClone(id) {
-        if(mapId[id] && mapId[id]!==id) return mapId[id];
-        const r=remoteById.get(id);
-        if(!r) return id;
-        const cloneId='cloud_'+String(id).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,70)+'_'+Date.now().toString(36);
-        merged.supplements.push({...r,id:cloneId,name:String(r.name||'名称未設定')+'（クラウド版・要確認）'});
-        byId.set(cloneId,merged.supplements[merged.supplements.length-1]);
-        mapId[id]=cloneId;conflicts++;
-        return cloneId;
-      }
-      for(const r of remote.supplements||[]) {
-        const l=byId.get(r.id);
-        if(!l){merged.supplements.push(r);byId.set(r.id,r);mapId[r.id]=r.id;added++;}
-        else if(meaningfulItem_(l)===meaningfulItem_(r)){mapId[r.id]=r.id;}
-        else if(!l.image && r.image && JSON.stringify([l.name,l.recommendedDosage,l.timingSchedule])===JSON.stringify([r.name,r.recommendedDosage,r.timingSchedule])){
-          l.image=r.image;mapId[r.id]=r.id;
-        }
-        else cloudClone(r.id);
-      }
-      for(const [date,day] of Object.entries(remote.logs||{})) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
-        if(!merged.logs[date])merged.logs[date]={morning:{},afternoon:{},evening:{}};
-        for(const timing of ['morning','afternoon','evening']) {
-          merged.logs[date][timing] ||= {};
-          for(const [id,amount] of Object.entries(day[timing]||{})) {
-            let target=mapId[id]||id;
-            if(!byId.has(target)) continue;
-            if (merged.logs[date][timing][target]!==undefined && Number(merged.logs[date][timing][target])!==Number(amount)) {
-              target=cloudClone(id);
-            }
-            if(merged.logs[date][timing][target]===undefined)merged.logs[date][timing][target]=amount;
-          }
-        }
-      }
-      const a=String(merged.medicalHistory||'').trim(), b=String(remote.medicalHistory||'').trim();
-      if(b && a!==b) merged.medicalHistory = a ? a+'\n\n【クラウドから復元した既往歴・要確認】\n'+b : b;
-      return {merged,conflicts,added};
-    }
-    async function pullCloudData(saveAfter=false) {
-      if (state.cloudBusy) return;
-      const prompt = saveAfter
-        ? '端末データをバックアップしてから、クラウドのデータと統合し、Googleに保存します。内容が異なる品目や服用量は別名で両方を残します。続けますか？'
-        : 'クラウドから取り込みます。現在の端末データは先にJSONでバックアップし、消さずに統合します。続けますか？';
-      if (!confirm(prompt)) return;
-      clearTimeout(cloudSyncTimer);
-      state.cloudBusy=true;state.cloudError='';state.cloudStatus='';render();
-      let imported=false;
-      try {
-        const r=await cloudRequest('cloudPull');
-        const revision=Number(r.revision);
-        if(r.status !== 'success') throw new Error('クラウドからの取り込みを確認できませんでした。');
-        if(!r.hasCloudData) throw new Error('Google側には保存済みのデータがありません。');
-        if(!Number.isSafeInteger(revision) || revision < 1 || !Array.isArray(r.snapshot?.supplements) ||
-            !r.snapshot.logs || typeof r.snapshot.logs !== 'object' || Array.isArray(r.snapshot.logs)) {
-          throw new Error('クラウドの保存データ形式を確認できませんでした。');
-        }
-        if (!(await saveQueue)) throw new Error('端末の保存に失敗しました。');
-        downloadBackup();  // 取り込み前に必ずローカル退避
-        const old=makeSnapshot();
-        const result=mergeCloudSnapshot_(old,r.snapshot);
-        applySnapshot({...result.merged,gasUrl:state.gasUrl,cloudRevision:revision,cloudEnabled:true,
-          cloudLogsPending:saveAfter || old.cloudLogsPending});
-        const ok=await saveData();
-        if(!ok){applySnapshot(old);throw new Error('端末へ保存できませんでした。元のデータに戻しました。');}
-        imported=true;
-        state.cloudConflict=false;
-        state.cloudStatus=`クラウドから取り込み完了：追加${result.added}件、内容違い${result.conflicts}件（内容違いは別名で両方保持）。取り込み前データをダウンロード済み。`;
-      } catch(e){state.cloudError=explainError(e);}
-      finally{state.cloudBusy=false;render();}
-      if(imported && saveAfter) await pushCloudData(true);
-    }
-
-    function cloudSyncFeedbackHTML() {
-      return `${state.cloudStatus ? `<p class="mt-2 text-sm text-teal-950 font-bold border-2 border-teal-600 bg-teal-50 p-3 rounded-xl" role="status">${safeHtml(state.cloudStatus)}</p>` : ''}
-        ${state.cloudError ? errorPanel(state.cloudError,'クラウド同期エラー') : ''}
-        ${state.cloudConflict ? `<button type="button" onclick="pullCloudData(true)" ${state.cloudBusy?'disabled':''}
-          class="mt-2 w-full rounded-xl border-2 border-indigo-800 bg-indigo-50 px-3 py-3 text-sm font-black text-indigo-950 disabled:opacity-50">クラウドと統合して保存</button>` : ''}`;
-    }
-
-    function errorPanel(message, heading='AI通信エラー') {
-      if (!message) return '';
-      return `<div role="alert" class="mt-3 bg-red-50 border-2 border-red-600 text-red-950 p-4 rounded-xl shadow-sm">
-        <p class="text-base font-black mb-2">⚠ ${safeHtml(heading)}</p>
-        <p class="text-sm font-semibold leading-relaxed whitespace-pre-wrap break-words select-text">${safeHtml(message)}</p>
-        <p class="text-xs font-bold mt-2">※ APIキーやパスワードを共有しないでください。</p>
-      </div>`;
-    }
-
-    async function checkGasConnection() {
-      state.checkingConnection = true;
-      state.connectionResult = '';
-      render();
-      try {
-        const url = normalizeGasUrl(state.gasUrl);
-        const response = await fetch(url, {method:'GET'});
-        const body = await response.text();
-        if (!response.ok) throw new Error('HTTP_' + response.status + ': Webアプリへのアクセスが拒否されました。');
-        if (!body.includes('毎日のサプリ管理GASサーバーは正常に稼働しています')) {
-          throw new Error('GAS_RESPONSE: 想定したGASの応答ではありません。ウェブアプリのデプロイ先やアクセス権限を確認してください。');
-        }
-        state.connectionResult = '接続OK：GASの公開URLへアクセスできました。ただしGemini APIへの接続は別途確認が必要です。';
-      } catch(e) {state.connectionResult = explainError(e);}
-      finally {state.checkingConnection = false; render();}
-    }
-
-    async function handleAnalyzeImage() {
-      if (!state.gasUrl) { state.photoError='GAS_URL: 設定画面でGAS WebアプリURLを登録してください。'; render(); return; }
-      if (!state.newSuppImage) return showToast('写真を選択してください');
-      
-      state.photoError = '';
-      state.isAnalyzing = true;
-      render();
-
-      try {
-        const match = state.newSuppImage.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-        if (!match) throw new Error('画像フォーマット不正');
-        
-        const result = await gasRequest({
-            action: 'gemini', model: 'gemini-3.6-flash',
-            payload: {
-              contents: [{role:'user', parts:[
-                {text:'このサプリ・薬のパッケージ画像から「製品名(name)」「1日の合計推奨量(recommendedDosage)」「朝(morning), 昼(afternoon), 夕/夜(evening)ごとの目安粒数」を抽出し、JSON形式で返答してください。単位はすべて整数です。読み取れない内容は推測せず空にしてください。'},
-                {inlineData:{mimeType:match[1], data:match[2]}}
-              ]}], generationConfig:{responseMimeType:'application/json'}
-            }
-        });
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error('EMPTY_RESPONSE: Geminiから解析結果が返りませんでした。画像内容・API応答を確認してください。');
-        if (text) {
-          const parsed = JSON.parse(text);
-          if (parsed.name) state.manageForm.name = parsed.name;
-          if (parsed.recommendedDosage) state.manageForm.recommendedDosage = String(Math.round(parsed.recommendedDosage));
-          state.manageForm.morning = String(parsed.morning !== undefined ? Math.round(parsed.morning) : 1);
-          state.manageForm.afternoon = String(parsed.afternoon !== undefined ? Math.round(parsed.afternoon) : 0);
-          state.manageForm.evening = String(parsed.evening !== undefined ? Math.round(parsed.evening) : 1);
-          showToast('AIが解析・自動入力しました！');
-        }
-      } catch (e) {
-        state.photoError = explainError(e) + '\n※写真はそのまま残っています。名前を手入力して「登録」するか、写真だけ仮登録できます。';
-      } finally {
-        state.isAnalyzing = false;
-        await saveData(); // 失敗でも写真付きの下書きを維持
-        render();
-      }
-    }
-
-    function getAIReadableSupplements() {
-      // 写真のBase64本体を文章分析へ誤送信しない。画像解析ボタンでは別途画像を送信する。
-      return state.supplements.map(s => ({
-        id:s.id, name:s.name, recommendedDosage:s.recommendedDosage,
-        timingSchedule:s.timingSchedule, hasImage:!!s.image
-      }));
-    }
-
-    async function handleGenerateAIReport() {
-      if (!state.gasUrl) return showToast('設定からGAS URLを設定してください');
-      state.aiLoading = true;
-      state.aiReport = '';
-      render();
-
-      try {
-        const parts = [{ 
-          text: `あなたはプロのアドバイザーです。以下のデータをもとに週間レビューを作成してください。\n既往歴: ${state.medicalHistory || "なし"}\nサプリ: ${JSON.stringify(getAIReadableSupplements())}\n最近のログ: ${JSON.stringify(state.logs)}`
-        }];
-
-        const response = await fetch(state.gasUrl.trim().replace(/\/edit.*$/, '/exec'), {
-          method: 'POST', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'gemini',
-            model: 'gemini-3.6-flash',
-            payload: { contents: [{ role: 'user', parts }] }
-          })
-        });
-
-        const raw = await response.text();
-        if (!response.ok) throw new Error('HTTP_' + response.status + ': GASのアクセス設定を確認してください。');
-        let result;
-        try { result = JSON.parse(raw); } catch(e) { throw new Error('GAS_RESPONSE: JSON以外の応答です。アクセス権限かデプロイURLを確認してください。'); }
-        if (result.status === 'error') throw new Error(result.message);
-        state.aiReport = result.candidates?.[0]?.content?.parts?.[0]?.text || '生成失敗';
-      } catch (e) {
-        state.aiReport = 'エラー: ' + e.message;
-      } finally {
-        state.aiLoading = false;
-        render();
-      }
-    }
-
-    async function handleAskAI() {
-      if (!state.gasUrl) return showToast('設定画面からGAS URLを設定してください');
-      if (!state.aiQuestion.trim()) return;
-
-      const question = state.aiQuestion;
-      state.aiQuestion = '';
-      state.isAskingAI = true;
-      state.aiChatHistory.push({ role: 'user', text: question });
-      render();
-
-      try {
-        const prompt = `あなたはプロのヘルスケアアドバイザーです。既往歴「${state.medicalHistory || "特になし"}」、登録サプリ「${JSON.stringify(getAIReadableSupplements())}」、服薬ログ「${JSON.stringify(state.logs)}」を踏まえて、次の質問に答えてください。\n\n質問: ${question}`;
-        const response = await fetch(state.gasUrl.trim().replace(/\/edit.*$/, '/exec'), {
-          method: 'POST', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'gemini',
-            model: 'gemini-3.6-flash',
-            payload: { contents: [{ role: "user", parts: [{ text: prompt }] }] }
-          })
-        });
-        const raw = await response.text();
-        if (!response.ok) throw new Error('HTTP_' + response.status + ': GASのアクセス設定を確認してください。');
-        let result;
-        try { result = JSON.parse(raw); } catch(e) { throw new Error('GAS_RESPONSE: JSON以外の応答です。アクセス権限かデプロイURLを確認してください。'); }
-        if (result.status === 'error') throw new Error(result.message);
-        const answer = result.candidates?.[0]?.content?.parts?.[0]?.text || '回答エラー';
-        state.aiChatHistory.push({ role: 'model', text: answer });
-      } catch (e) {
-        state.aiChatHistory.push({ role: 'model', text: 'エラーが発生しました: ' + e.message });
-      } finally {
-        state.isAskingAI = false;
-        render();
-      }
-    }
-
-    function startEdit(id) {
-      const supp = state.supplements.find(s => s.id === id);
-      if (!supp) return;
-      state.manageForm.name = supp.name;
-      state.manageForm.recommendedDosage = String(supp.recommendedDosage || 0);
-      state.manageForm.morning = String(supp.timingSchedule?.morning ?? 0);
-      state.manageForm.afternoon = String(supp.timingSchedule?.afternoon ?? 0);
-      state.manageForm.evening = String(supp.timingSchedule?.evening ?? 0);
-      state.newSuppImage = supp.image;
-      state.editingSuppId = id;
-      state.photoError = '';
-      scheduleDraftSave();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      render();
-    }
-
-    async function cancelEdit() {
-      resetDraft();
-      const ok = await saveData();
-      render();
-      if (!ok) showToast('下書きの変更を保存できませんでした');
-    }
-
-    async function handleSaveSupplement(event) {
-      event.preventDefault();
-      const { name, recommendedDosage, morning, afternoon, evening } = state.manageForm;
-      if (!name.trim() && !state.newSuppImage) return showToast('名前または写真を入力してください');
-      const photoOnly = !name.trim() && !!state.newSuppImage;
-      const finalName = photoOnly ? '写真のみ登録（未解析）' : name.trim();
-      const mVal = photoOnly ? 0 : Math.max(0, Math.round(Number(morning) || 0));
-      const aVal = photoOnly ? 0 : Math.max(0, Math.round(Number(afternoon) || 0));
-      const eVal = photoOnly ? 0 : Math.max(0, Math.round(Number(evening) || 0));
-      const sum = mVal + aVal + eVal;
-      const recVal = photoOnly ? 0 : (recommendedDosage ? Math.max(0,Math.round(Number(recommendedDosage)||0)) : sum);
-      const prevSnapshot = makeSnapshot();
-      const suppData = {
-        name:finalName,
-        recommendedDosage:recVal,
-        timingSchedule:{morning:mVal,afternoon:aVal,evening:eVal},
-        image:state.newSuppImage // AIが失敗しても写真を必ず使う
-      };
-      let nextSupplements = state.supplements.map(s => ({...s}));
-      if (state.editingSuppId) {
-        const index = nextSupplements.findIndex(s => s.id === state.editingSuppId);
-        if (index < 0) return showToast('編集対象のデータが見つかりません');
-        nextSupplements[index] = {...nextSupplements[index],...suppData};
-      } else {
-        nextSupplements.push({id:Date.now().toString()+'-'+Math.random().toString(36).slice(2,7),...suppData});
-      }
-      state.supplements = nextSupplements;
-      const editing = !!state.editingSuppId;
-      resetDraft();
-      clearTimeout(draftSaveTimer);
-      const ok = await saveData();
-      if (!ok) {
-        applySnapshot(prevSnapshot);
-        render();
-        return showToast('保存できませんでした。写真と入力内容は画面に残しています');
-      }
-      scheduleCloudUpload();
-      render();
-      showToast(photoOnly ? '写真だけ仮登録しました。後から名前・数量を編集できます' : editing ? '写真と登録内容を更新しました' : '写真と登録内容を保存しました');
-    }
-
-    async function handleDeleteSupplement(id) {
-      const supp = state.supplements.find(s => s.id === id);
-      if (!supp || !confirm(`「${safeHtml(supp.name)}」を削除しますか？（復元にはバックアップが必要です）`)) return;
-      const prevSnapshot = makeSnapshot();
-      state.supplements = state.supplements.filter(s => s.id !== id);
-      if (state.editingSuppId === id) resetDraft();
-      const ok = await saveData();
-      if (!ok) {applySnapshot(prevSnapshot);showToast('削除結果を保存できませんでした');}
-      else {showToast('登録を削除しました');scheduleCloudUpload();}
-      render();
-    }
-
-    async function saveHistory() {const ok=await saveData();if(ok)scheduleCloudUpload();showToast(ok?'既往歴を保存しました':'保存できませんでした');}
-    async function saveSettings() {const ok=await saveData();showToast(ok?'設定を保存しました':'保存できませんでした');if(ok){sheetLogError='';resumeHistorySync();}}
-
-    function getDayProgress(dateStr) {
-      ensureDayLog(dateStr);
-      const dayLogs = state.logs[dateStr];
-      const timings = ['morning', 'afternoon', 'evening'];
-      let scheduled = 0, completed = 0;
-      
-      timings.forEach(t => {
-        let tScheduled = 0, tLogged = 0;
-        state.supplements.forEach(supp => {
-          if (supp.timingSchedule[t] > 0) {
-            tScheduled++;
-            if (dayLogs[t]?.[supp.id] > 0) tLogged++;
-          }
-        });
-        scheduled += tScheduled;
-        completed += tLogged;
-      });
-      return { hasPlan: scheduled > 0, isFullDone: scheduled > 0 && completed >= scheduled };
-    }
-
-    function getDayCounts(dateStr) {
-      const logs = state.logs[dateStr] || {};
-      let scheduled = 0, completed = 0;
-      for (const timing of ['morning','afternoon','evening']) {
-        for (const supp of state.supplements) {
-          if ((supp.timingSchedule?.[timing] || 0) > 0) {
-            scheduled++;
-            if ((logs[timing]?.[supp.id] || 0) > 0) completed++;
-          }
-        }
-      }
-      return { scheduled, completed };
-    }
-
-    function renderCalendarHTML() {
-      const year = state.calendarDate.getFullYear();
-      const month = state.calendarDate.getMonth();
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayStr = formatDate(new Date());
-      const selectedCounts = getDayCounts(state.selectedDate);
-      const isToday = state.selectedDate === todayStr;
-      const percent = selectedCounts.scheduled ? Math.min(100,Math.round(selectedCounts.completed/selectedCounts.scheduled*100)) : 0;
-      let html = `<section class="bg-gradient-to-br from-teal-900 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg mb-4 border-2 border-teal-950">
-        <div class="flex items-start justify-between gap-2">
-          <div><div class="text-xs font-bold text-teal-100">選択日の服用チェック</div><div class="text-lg sm:text-xl font-black mt-1">${state.selectedDate.replace(/-/g,'/')} ${isToday?'・今日':''}</div></div>
-          <button onclick="goToToday()" class="shrink-0 rounded-xl bg-white text-teal-900 px-3 py-2 border-2 border-white font-black text-xs shadow">今日に戻る</button>
-        </div>
-        <div class="flex justify-between items-end mt-3"><span class="text-sm font-bold">${selectedCounts.scheduled ? '記録済み / 予定' : '予定の登録はありません'}</span><span class="text-xl font-black">${selectedCounts.completed}<span class="text-sm"> / ${selectedCounts.scheduled} 件</span></span></div>
-        <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="記録進捗" class="mt-2 h-3 w-full rounded-full bg-teal-950/70 overflow-hidden border border-teal-500"><div style="width:${percent}%" class="h-full bg-yellow-300 rounded-full transition-all"></div></div>
-      </section>`;
-      html += `<section class="bg-white px-3 sm:px-4 py-4 rounded-2xl shadow-md border-2 border-slate-600 mb-4">
-        <div class="flex justify-between items-center mb-4">
-          <button aria-label="前の月" onclick="changeMonth(-1)" class="p-2.5 bg-slate-100 border-2 border-slate-400 text-slate-900 rounded-xl hover:bg-slate-200"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-          <div class="font-black text-xl text-teal-950 tracking-tight">${year}年 ${month + 1}月</div>
-          <button aria-label="次の月" onclick="changeMonth(1)" class="p-2.5 bg-slate-100 border-2 border-slate-400 text-slate-900 rounded-xl hover:bg-slate-200"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
-        </div>
-        <div class="calendar-board" role="group" aria-label="服用記録カレンダー">`;
-      ['日','月','火','水','木','金','土'].forEach((w,i) => { html += `<div class="calendar-weekday ${i===0?'!text-red-700':i===6?'!text-blue-700':''}">${w}</div>`; });
-      for (let i=0;i<firstDay;i++) html += `<div class="calendar-blank" aria-hidden="true"></div>`;
-      for (let i=1;i<=daysInMonth;i++) {
-        const dateStr = formatDate(new Date(year, month, i));
-        const isSelected = dateStr === state.selectedDate;
-        const isCurrent = dateStr === todayStr;
-        const counts = getDayCounts(dateStr);
-        const done = counts.scheduled > 0 && counts.completed >= counts.scheduled;
-        const progress = state.logs[dateStr] || {};
-        const has = t => state.supplements.some(s => (progress[t]?.[s.id] || 0) > 0);
-        const colors = ['morning','afternoon','evening'].map((t,ix) => has(t) ? ['#fbbf24','#38bdf8','#ef4444'][ix] : (isSelected ? '#99aab5' : '#cbd5e1'));
-        html += `<button type="button" onclick="selectDate('${dateStr}')" aria-label="${year}年${month+1}月${i}日、${counts.completed}件記録済み" aria-pressed="${isSelected}" class="calendar-day ${isSelected?'is-selected':''} ${isCurrent?'is-today':''} ${done?'is-complete':''}">
-          <span>${i}${done?'<span class="ml-0.5 text-xs" aria-hidden="true">✓</span>':''}</span>
-          <span class="flex gap-1" aria-hidden="true">${colors.map(c=>`<span class="calendar-dot" style="background:${c}"></span>`).join('')}</span>
-        </button>`;
-      }
-      const tail=(7-(firstDay+daysInMonth)%7)%7;
-      for(let i=0;i<tail;i++) html += `<div class="calendar-blank" aria-hidden="true"></div>`;
-      html += `</div><div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs font-bold text-slate-700">
-        <span><span class="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full mr-1"></span>朝</span>
-        <span><span class="inline-block w-2.5 h-2.5 bg-sky-400 rounded-full mr-1"></span>昼</span>
-        <span><span class="inline-block w-2.5 h-2.5 bg-red-500 rounded-full mr-1"></span><span class="text-red-800 font-black">夕</span></span>
-        <span><span class="inline-block w-2.5 h-2.5 bg-slate-300 rounded-full mr-1"></span>未記録</span>
-        <span class="text-teal-800">✓ 予定完了</span>
-      </div></section>`;
-      return html;
-    }
-
-    function render() {
-      try {
-        const mainEl = document.getElementById('main-content');
-        let html = '';
-
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-          btn.classList.remove('text-teal-800', 'font-black');
-          btn.classList.add('text-slate-500');
-        });
-        const activeBtn = document.getElementById(`nav-${state.activeTab}`);
-        if(activeBtn) {
-          activeBtn.classList.add('text-teal-800', 'font-black');
-          activeBtn.classList.remove('text-slate-500');
-        }
-
-        if (state.activeTab === 'log') {
-          html += renderCalendarHTML();
-          html += `<section class="mb-4 rounded-2xl border-2 border-slate-500 bg-white p-4 shadow-sm">
-            <h2 class="text-lg font-black text-slate-900">その日のメモ</h2>
-            <p class="mt-1 text-sm text-slate-700">10月14日〜11月16日のデータが消えています。</p>
-            <label for="daily-note" class="mt-2 mb-2 block text-sm font-bold text-slate-900">${state.selectedDate.replace(/-/g,'/')} のメモ</label>
-            <textarea id="daily-note" rows="3" oninput="updateDailyNote(this.value)"
-              class="w-full rounded-xl border-2 border-slate-500 p-3 text-base text-slate-900"
-              placeholder="体調や飲み方で気づいたことを記録">${'\n' + safeHtml(state.dailyNotes[state.selectedDate] || '')}</textarea>
-            <button type="button" onclick="saveDailyNote()" class="mt-2 w-full rounded-xl border-2 border-teal-950 bg-teal-800 px-4 py-2 text-sm font-black text-white">メモを保存</button>
-          </section>`;
-          ensureDayLog(state.selectedDate);
-
-          html += `<div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-400">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-400 pb-3 mb-3">
-              <h2 class="text-lg font-black text-slate-900">服用を記録 <span class="text-sm font-bold text-slate-600">(${state.selectedDate.slice(5).replace('-','/')})</span></h2>
-              <div class="flex bg-slate-200 p-1 rounded-xl text-xs font-black border border-slate-300">
-                <button onclick="setFilterTiming('all')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'all' ? 'bg-white text-teal-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">全て</button>
-                <button onclick="setFilterTiming('morning')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'morning' ? 'bg-white text-amber-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">朝</button>
-                <button onclick="setFilterTiming('afternoon')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'afternoon' ? 'bg-white text-sky-900 shadow-sm border border-slate-300' : 'text-slate-600 hover:bg-slate-300'}">昼</button>
-                <button onclick="setFilterTiming('evening')" class="px-2.5 py-1 rounded-lg ${state.activeTiming === 'evening' ? 'bg-red-50 text-red-900 shadow-sm border border-red-500' : 'text-slate-600 hover:bg-slate-300'}">夕</button>
-              </div>
-            </div>
-            <div class="mb-3">${cloudSyncFeedbackHTML()}</div>`;
-
-          if (state.supplements.length === 0) {
-            html += `<div class="text-center py-8 text-slate-500 font-bold text-sm">サプリ管理から追加してください</div></div>`;
-          } else {
-            const timings = state.activeTiming === 'all' ? ['morning', 'afternoon', 'evening'] : [state.activeTiming];
-            timings.forEach(timing => {
-              const icon = timing === 'morning' ? 'sun' : (timing === 'afternoon' ? 'sun-medium' : 'moon');
-              html += `<div class="mb-5">
-                <h3 class="font-black text-slate-900 text-base mb-2 flex items-center gap-2"><i data-lucide="${icon}" class="w-4 h-4 ${timing === 'evening' ? 'text-red-600' : 'text-slate-600'}"></i><span class="${timing === 'evening' ? 'text-red-800' : 'text-slate-900'}">${getTimingLabel(timing)}</span></h3>
-                <div class="space-y-2">`;
-
-              state.supplements.forEach(supp => {
-                const plannedAmount = supp.timingSchedule[timing] || 0;
-                const loggedAmount = state.logs[state.selectedDate]?.[timing]?.[supp.id];
-                const isChecked = loggedAmount !== undefined && loggedAmount > 0;
-                const displayVal = isChecked ? loggedAmount : (plannedAmount > 0 ? plannedAmount : 1);
-
-                html += `<div class="bg-white p-3 rounded-xl border-2 ${isChecked ? 'border-teal-600 bg-teal-50/50' : 'border-slate-400'} flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-3">
-                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-300"><i data-lucide="pill" class="w-5 h-5 text-slate-500"></i></div>`}
-                    <div>
-                      <p class="font-black text-base text-slate-900">${safeHtml(supp.name)}</p>
-                      <p class="text-xs font-bold text-slate-700">目安: ${plannedAmount}粒</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <input type="number" min="0" value="${displayVal}" onchange="handleCustomDosageChange('${supp.id}', '${timing}', this.value)" class="w-12 p-1 text-center font-black bg-slate-50 border-2 border-slate-400 rounded-lg outline-none text-sm focus:border-teal-500 focus:bg-white" />
-                    <button onclick="handleToggleLog('${supp.id}', '${timing}')" class="px-3 py-2.5 rounded-xl font-black text-sm border-2 flex items-center gap-1 shadow-sm ${isChecked ? 'bg-teal-600 text-white border-teal-700' : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'}">
-                      <i data-lucide="${isChecked ? 'check-circle-2' : 'circle'}" class="w-4 h-4"></i>${isChecked ? '済' : '飲む'}
-                    </button>
-                  </div>
-                </div>`;
-              });
-              const saveLabel = timing === 'evening' ? '夜' : getTimingLabel(timing);
-              html += `</div><button type="button" onclick="saveTimingRecords('${timing}')" ${state.cloudBusy?'disabled':''}
-                class="mt-3 w-full rounded-xl border-2 border-teal-950 bg-teal-800 px-4 py-3 text-sm font-black text-white disabled:opacity-50">${state.cloudBusy?'Google保存の処理中…':saveLabel+'の記録を保存'}</button></div>`;
-            });
-            html += `</div>`;
-          }
-
-        } else if (state.activeTab === 'manage') {
-          html += `<div class="space-y-5">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border-2 ${state.editingSuppId ? 'border-blue-500 bg-blue-50' : 'border-slate-400'}">
-              <h2 class="text-base font-black mb-3"><i data-lucide="${state.editingSuppId ? 'edit-3' : 'plus-circle'}" class="inline w-5 h-5 mr-1 ${state.editingSuppId ? 'text-blue-700' : 'text-teal-700'}"></i>${state.editingSuppId ? '編集' : '追加'}</h2>
-              <form onsubmit="handleSaveSupplement(event)" class="space-y-4">
-                <input type="text" value="${safeHtml(state.manageForm.name)}" oninput="state.manageForm.name=this.value;scheduleDraftSave()" placeholder="サプリ・薬の名前" class="w-full p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-teal-500" />
-                <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300">
-                  <label class="text-xs font-black block mb-2 text-slate-800">いつ何粒飲むか</label>
-                  <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-amber-700">朝</span><input type="number" min="0" value="${state.manageForm.morning}" oninput="state.manageForm.morning=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-amber-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-sky-700">昼</span><input type="number" min="0" value="${state.manageForm.afternoon}" oninput="state.manageForm.afternoon=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-sky-500 mt-1" /></div>
-                    <div class="bg-white p-2 rounded-lg border-2 border-slate-300 text-center"><span class="text-[10px] block font-black text-red-800">夕</span><input type="number" min="0" value="${state.manageForm.evening}" oninput="state.manageForm.evening=this.value;scheduleDraftSave()" class="w-full text-center font-black outline-none border-b-2 border-slate-300 focus:border-red-600 mt-1" /></div>
-                  </div>
-                </div>
-                <div class="bg-slate-100 p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2">
-                  <div class="flex items-center gap-3">
-                    ${state.newSuppImage ? `<img src="${state.newSuppImage}" class="w-12 h-12 rounded-lg object-cover border-2 border-slate-400 shadow-sm" />` : `<div class="w-12 h-12 rounded-lg bg-white flex items-center justify-center border-2 border-dashed border-slate-400"><i data-lucide="camera" class="text-slate-500"></i></div>`}
-                    <label class="cursor-pointer bg-white border-2 border-teal-600 text-teal-800 font-black py-2 px-3 rounded-xl text-xs shadow-sm hover:bg-teal-50"><input type="file" accept="image/*" onchange="handleImageChange(event)" class="hidden" />写真を選択</label>
-                  </div>
-                  ${state.newSuppImage ? `<p class="text-sm font-black text-teal-900 bg-teal-50 border border-teal-600 rounded-lg p-2">📷 写真は下書きに保存されます。AIが失敗しても手入力・仮登録できます。</p>` : ''}
-                  ${state.newSuppImage ? `<button type="button" onclick="handleAnalyzeImage()" ${state.isAnalyzing ? 'disabled' : ''} class="bg-indigo-700 text-white font-black py-3 rounded-xl text-sm shadow-sm border-2 border-indigo-900 disabled:opacity-60">${state.isAnalyzing ? '解析中...' : '写真からAI自動入力'}</button>` : ''}
-                  ${errorPanel(state.photoError, '写真のAI解析に失敗しました')}
-                </div>
-                <div class="text-xs font-bold text-slate-700">AIが推定した名前・服用量は必ず現物の表示や処方指示で確認してください。</div>
-                <div class="text-xs font-bold text-slate-700">写真だけでも登録できます。名前が空なら「写真のみ登録（未解析）」として保存します。服用量は安全のため0にし、後から確認して設定できます。</div>
-                <div class="flex gap-2">
-                  <button type="submit" class="flex-1 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 ${state.editingSuppId ? 'bg-blue-600 border-blue-800 hover:bg-blue-700' : 'bg-teal-700 border-teal-900 hover:bg-teal-800'}">${state.editingSuppId ? '写真と内容を保存' : '写真・内容を登録'}</button>
-                  ${state.editingSuppId ? `<button type="button" onclick="cancelEdit()" class="bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-xl text-sm border-2 border-slate-400 hover:bg-slate-400">中止</button>` : ''}
-                </div>
-              </form>
-            </div>
-            
-            <div class="space-y-2">
-              <h3 class="font-black text-slate-800 text-sm">登録済み (${state.supplements.length}件)</h3>
-              ${state.supplements.map(supp => `
-                <div class="bg-white p-3 rounded-xl border-2 border-slate-300 flex items-center justify-between shadow-sm">
-                  <div class="flex items-center gap-3">
-                    ${supp.image ? `<img src="${supp.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-300" />` : `<div class="w-10 h-10 bg-slate-100 rounded-lg border-2 border-slate-300 flex items-center justify-center"><i data-lucide="pill" class="text-slate-500"></i></div>`}
-                    <div>
-                      <p class="font-black text-base text-slate-900">${safeHtml(supp.name)}</p>
-                      <p class="text-[10px] font-bold text-slate-600">朝${supp.timingSchedule?.morning||0} 昼${supp.timingSchedule?.afternoon||0} 夕${supp.timingSchedule?.evening||0}</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <button onclick="startEdit('${supp.id}')" class="text-blue-700 p-2 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                    <button onclick="handleDeleteSupplement('${supp.id}')" class="text-red-700 p-2 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>`;
-        } else if (state.activeTab === 'history') {
-          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-amber-500">
-            <h2 class="text-base font-black text-amber-950 mb-2 flex items-center gap-2"><i data-lucide="file-heart" class="text-amber-700"></i>既往歴・体質メモ</h2>
-            <textarea oninput="state.medicalHistory=this.value;scheduleDraftSave()" placeholder="持病やアレルギーなどを入力" class="w-full h-48 p-3 border-2 border-slate-400 rounded-xl font-bold text-sm outline-none focus:border-amber-500 bg-slate-50 focus:bg-white">${safeHtml(state.medicalHistory)}</textarea>
-            <button onclick="saveHistory()" class="w-full mt-3 bg-amber-600 text-white font-black py-3 rounded-xl text-sm shadow-md border-2 border-amber-800 hover:bg-amber-700">保存する</button>
-          </div>`;
-        } else if (state.activeTab === 'ai') {
-          html += `<div class="space-y-5">
-            <div class="bg-indigo-900 p-5 rounded-2xl shadow-md text-white border-2 border-indigo-950">
-              <h2 class="text-base font-black mb-2 flex items-center gap-2"><i data-lucide="sparkles" class="text-yellow-300"></i>AI 週間分析レポート</h2>
-              <button onclick="handleGenerateAIReport()" ${state.aiLoading ? 'disabled' : ''} class="w-full bg-white text-indigo-950 font-black py-3 rounded-xl text-sm shadow-md border-2 border-indigo-300 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed">${state.aiLoading ? '分析中...' : 'レポート生成'}</button>
-            </div>
-            ${state.aiReport ? `<div class="bg-white p-4 rounded-2xl border-2 border-indigo-500 font-bold whitespace-pre-wrap shadow-sm text-xs leading-relaxed text-slate-800">${safeHtml(state.aiReport)}</div>` : ''}
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-indigo-300 flex flex-col h-[400px]">
-              <h3 class="font-black text-indigo-950 mb-2 text-sm">ヘルスケアAIチャット</h3>
-              <div class="flex-grow overflow-y-auto mb-3 space-y-2 pr-1" id="ai-chat-area">
-                ${state.aiChatHistory.map(msg => `
-                  <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-[85%] p-3 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none border-2 border-indigo-700' : 'bg-slate-100 text-slate-800 rounded-tl-none border-2 border-slate-300'}">${safeHtml(msg.text)}</div>
-                  </div>
-                `).join('')}
-              </div>
-              <div class="flex gap-2 mt-auto">
-                <input type="text" value="${state.aiQuestion}" oninput="state.aiQuestion=this.value" onkeydown="if(event.key==='Enter')handleAskAI()" placeholder="質問を入力..." class="flex-grow p-2.5 border-2 border-slate-400 rounded-xl font-bold text-xs outline-none focus:border-indigo-500 bg-slate-50 focus:bg-white" />
-                <button onclick="handleAskAI()" ${state.isAskingAI ? 'disabled' : ''} class="bg-indigo-700 text-white px-4 rounded-xl shadow-sm border-2 border-indigo-900 hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="send" class="w-4 h-4"></i></button>
-              </div>
-            </div>
-          </div>`;
-        } else if (state.activeTab === 'settings') {
-          html += `<div class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-400">
-            <h2 class="text-base font-black mb-3 text-slate-900"><i data-lucide="settings-2" class="inline w-4 h-4 mr-2"></i>外部連携設定 <span class="text-xs">v1.5.8</span></h2>
-            <div class="p-3 border-2 border-teal-300 bg-teal-50 rounded-xl">
-              <label class="font-black block mb-2 text-xs text-teal-900">GAS WebアプリURL</label>
-              <input type="text" value="${safeHtml(state.gasUrl)}" oninput="state.gasUrl=this.value" class="w-full p-2.5 border-2 border-teal-400 rounded-xl font-bold text-xs outline-none focus:border-teal-600 bg-white" />
-            </div>
-            <button onclick="checkGasConnection()" ${state.checkingConnection ? 'disabled' : ''} class="w-full mt-3 bg-teal-800 text-white font-black py-3 rounded-xl text-sm border-2 border-teal-950">${state.checkingConnection ? '診断中…' : 'GAS接続を診断する'}</button>
-            ${state.connectionResult ? (state.connectionResult.startsWith('接続OK') ? `<p class="mt-2 rounded-xl border-2 border-green-700 bg-green-50 p-3 text-sm font-bold text-green-950">${safeHtml(state.connectionResult)}</p>` : errorPanel(state.connectionResult,'GAS接続診断結果')) : ''}
-            <p class="mt-2 text-xs font-bold text-slate-700">※診断で「接続OK」でも、Gemini APIキー・モデルの利用権限は別途確認が必要です。</p>
-            <button onclick="saveSettings()" class="w-full mt-4 bg-slate-800 text-white font-black py-3 rounded-xl text-xs shadow-md border-2 border-slate-900 hover:bg-slate-900">設定を保存する</button>
-          </div>
-          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-teal-700 mt-4">
-            <h2 class="text-lg font-black text-teal-950 mb-2">従来の服用履歴タブ</h2>
-            <div id="sheet-log-status">${sheetLogStatusHTML()}</div>
-          </section>
-          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-teal-700 mt-4">
-            <h2 class="text-lg font-black text-teal-950 mb-2">☁ Google Drive・スプレッドシート同期</h2>
-            <p class="text-sm text-slate-800 font-bold leading-relaxed mb-3">登録した写真は非公開のDriveへ、サプリ台帳・服用履歴・既往歴はスプレッドシートへ変更履歴を残します。初回はバックアップ後に手動保存してください。その後は登録・服用変更時に自動同期します。</p>
-            <label for="sync-secret" class="block text-sm font-black text-slate-900 mb-1">同期キー（GASで setupCloudSync を実行して取得）</label>
-            <input id="sync-secret" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="64文字の同期キー" value="${safeHtml(state.cloudKey)}" oninput="state.cloudKey=this.value;state.cloudKeySaveStatus='入力内容は未保存です（下の保存ボタンを押してください）'" class="w-full p-3 rounded-xl border-2 border-slate-500 text-base text-slate-900 bg-white" />
-            <button type="button" onclick="rememberCloudKey()" class="mt-2 w-full p-3 border-2 border-teal-700 text-teal-950 bg-teal-50 rounded-xl font-black text-sm">同期キーを端末に保存</button>
-            <p class="mt-2 p-3 rounded-xl bg-slate-100 text-slate-900 border border-slate-500 text-sm font-bold" role="status">🔐 ${safeHtml(state.cloudKeySaveStatus)}</p>
-            <p class="mt-1 text-xs font-bold text-slate-700">端末内の2か所に保存します。GitHubやデータバックアップにはキーを含めません。スマホのサイトデータが消える設定やプライベートモードでは保持されない場合があります。</p>
-            <div class="grid grid-cols-2 gap-2 mt-3">
-              <button type="button" onclick="checkCloudStatus()" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-slate-100 text-slate-900 border-2 border-slate-500 text-sm font-black disabled:opacity-50">クラウド状態を確認</button>
-              <button type="button" onclick="pushCloudData(true)" ${state.cloudBusy?'disabled':''} class="p-3 rounded-xl bg-teal-800 text-white border-2 border-teal-950 text-sm font-black disabled:opacity-50">Googleに保存</button>
-            </div>
-            <button type="button" onclick="pullCloudData()" ${state.cloudBusy?'disabled':''} class="w-full mt-2 p-3 bg-white border-2 border-indigo-800 text-indigo-900 rounded-xl font-black text-sm disabled:opacity-50">クラウドから取り込む（消さずに統合）</button>
-            <div class="mt-3 rounded-xl bg-slate-100 border border-slate-400 p-3 text-sm font-bold text-slate-800">
-              ${state.cloudBusy ? '処理中…' : state.cloudEnabled ? '自動同期：有効（端末内の保存は継続）' : '自動同期：未開始（最初に「Googleに保存」を実行）'}
-              <div class="mt-1 text-xs">この端末の改訂：${state.cloudRevision}</div>
-            </div>
-            ${cloudSyncFeedbackHTML()}
-            <p class="mt-3 text-xs font-bold text-red-800">同期キーはGitHubやチャットに貼らないでください。クラウドへ保存される情報には健康・既往歴データが含まれます。AI解析失敗後の下書き写真は「登録」するまで端末内のみです。</p>
-          </section>
-          <section class="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-600 mt-4">
-            <h2 class="text-lg font-black text-slate-900 mb-2">🛡 登録データ・写真の保護</h2>
-            <p class="text-sm text-slate-800 font-bold mb-2">${safeHtml(state.storageStatus)}</p>
-            ${state.storageError ? errorPanel(state.storageError,'保存機能の注意') : ''}
-            <p class="text-sm text-slate-700 leading-relaxed mb-3">写真・登録内容・服用履歴は、この端末にも保存されます。クラウド同期を有効にすると登録済みデータはGoogle側にも保存されますが、通信失敗時は手動で再送が必要です。</p>
-            <button type="button" onclick="downloadBackup()" class="w-full bg-teal-800 text-white rounded-xl p-3 border-2 border-teal-950 text-base font-black">バックアップをダウンロード</button>
-            <label class="mt-3 w-full flex justify-center cursor-pointer bg-white text-teal-900 border-2 border-teal-700 rounded-xl p-3 font-black text-sm"><input class="hidden" type="file" accept="application/json,.json" onchange="importBackup(event)">バックアップ・復元用ファイルを選ぶ</label>
-            <p class="text-xs font-bold text-red-800 mt-3">バックアップには写真・服用履歴・既往歴などの個人情報が含まれます。ファイルを安全に保管してください。</p>
-          </section>`;
-        }
-
-        if (state.storageError && state.activeTab !== 'settings') {
-          html = `<div role="alert" class="mb-3 p-3 rounded-xl border-2 border-red-600 bg-red-50 text-red-950 font-bold">⚠ ${safeHtml(state.storageError)}</div>` + html;
-        }
-        mainEl.innerHTML = html;
-        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-
-        if (state.activeTab === 'ai') {
-          const chatArea = document.getElementById('ai-chat-area');
-          if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
-        }
-      } catch (error) {
-        document.getElementById('main-content').innerHTML = `
-          <div class="p-5 text-red-700 bg-red-50 border-2 border-red-300 rounded-xl text-sm font-bold shadow-sm">
-            <i data-lucide="alert-triangle" class="w-6 h-6 mb-2"></i>
-            画面の描画に失敗しました。<br>エラー詳細: ${error.message}
-          </div>`;
-        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-        console.error("Render Error:", error);
-      }
-    }
-
-    window.addEventListener('online', resumeHistorySync);
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById('main-content').innerHTML = '<div class="p-5 bg-white rounded-xl border-2 border-teal-700 font-black text-slate-800">保存済みデータを確認しています…</div>';
-      initializeApp();
-    });
-  </script>
+<body>
+<header class="header"><div class="header-inner"><div class="brand-icon" aria-hidden="true">🗓️</div><div class="brand">ビタミン・サプリ管理<div class="v">シンプル版 v2.2・写真AI</div></div><button class="today" data-action="today">今日へ</button></div></header>
+<main><div id="notice" aria-live="polite"></div><div id="content"></div></main>
+<nav class="tabs" aria-label="メニュー">
+<button class="tab active" data-tab="record"><b>🗓️</b>記録</button>
+<button class="tab" data-tab="manage"><b>💊</b>サプリ管理</button>
+<button class="tab" data-tab="history"><b>📋</b>履歴</button>
+<button class="tab" data-tab="settings"><b>⚙️</b>設定</button>
+</nav>
+<script>
+'use strict';
+// GASのURLをこの定数へ設定すれば、ブラウザの保存データ削除後も再入力不要です。
+// 設定画面から登録するだけでも使用できます。
+const DEFAULT_GAS_URL = '';
+const URL_KEY = 'supp_simple_gas_url';
+function oldGasUrl(){
+ const direct=safeStorageGet('gasUrl');if(direct)return direct;
+ try {const x=JSON.parse(safeStorageGet('supplement_app_v2_snapshot')||'null');return x?.gasUrl||'';}catch(e){return '';}
+}
+const PENDING_KEY = 'supp_simple_pending';
+const VERSION = '2.2.0';
+const TIMES = [{id:'morning',name:'朝',symbol:'☀️'},{id:'afternoon',name:'昼',symbol:'🌤️'},{id:'evening',name:'夜',symbol:'🌙'}];
+const app={tab:'record',date:todayDate(),gasUrl:DEFAULT_GAS_URL||safeStorageGet(URL_KEY)||oldGasUrl()||'',supplements:[],logs:{},loaded:false,busy:false,message:'',kind:'',editing:null,historyRows:0,spreadsheet:'',pending:null,aiConfigured:false,ai:{dataUrl:'',previewName:'',analyzing:false,error:'',result:null},draft:null};
+function todayDate(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+function safeStorageGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function safeStorageSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+function safeStorageDelete(k){try{localStorage.removeItem(k);}catch(e){}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function validateUrl(raw){let s=String(raw||'').trim();s=s.replace(/\/edit(?:\?.*)?$/,'/exec');if(!/^https:\/\/script\.google\.com\/macros\/s\/[-\w]+\/exec(?:\?.*)?$/.test(s))throw new Error('GASのURL（https://script.google.com/macros/s/.../exec）を入力してください。');return s;}
+function alertMsg(message,kind='warn'){app.message=message;app.kind=kind;paintNotice();}
+function paintNotice(){const el=document.getElementById('notice');el.innerHTML=app.message?`<div class="notice ${esc(app.kind)}" role="status">${esc(app.message)}</div>`:'';}
+function setBusy(x){app.busy=!!x;render();}
+function newId(prefix){const rnd=window.crypto?.randomUUID?.()||('t'+Date.now().toString(36)+Math.random().toString(36).slice(2));return prefix+String(rnd).replace(/[^a-zA-Z0-9_-]/g,'');}
+function jsonp(action,params={},timeout=17000){return new Promise((resolve,reject)=>{
+  const cb='suppCb_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);let done=false;
+  const s=document.createElement('script');s.async=true;
+  const finish=(err,data)=>{if(done)return;done=true;clearTimeout(timer);s.remove();delete window[cb];err?reject(err):resolve(data);};
+  window[cb]=result=>finish(null,result);
+  const timer=setTimeout(()=>finish(new Error('応答がありません。GASのデプロイ設定やURLを確認してください。')),timeout);
+  s.onerror=()=>finish(new Error('GASを読み込めません。公開設定・URL・ネット接続を確認してください。'));
+  const url=new URL(validateUrl(app.gasUrl));url.searchParams.set('action',action);url.searchParams.set('callback',cb);url.searchParams.set('_',Date.now());
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));s.src=url.toString();document.head.appendChild(s);
+});}
+async function readState(silent=false){
+  if(!app.gasUrl){app.loaded=false;render();return;}
+  app.busy=true;render();
+  try{
+    const r=await jsonp('state');
+    if(!r?.ok || r.version!==VERSION || !Array.isArray(r.supplements))throw new Error(r?.error||'GASがv2.2ではありません。付属のCode.gsを貼り、既存のデプロイを「新バージョン」で更新してください。');
+    app.supplements=r.supplements;app.logs=r.logs||{};app.loaded=true;app.spreadsheet=r.spreadsheet||'';app.historyRows=Number(r.historyRows||0);app.aiConfigured=!!r.aiConfigured;
+    if(!silent)alertMsg('Googleスプレッドシートから読み込みました。','good');
+    return true;
+  }catch(e){app.loaded=false;alertMsg(e.message,'error');return false;}
+  finally{app.busy=false;render();}
+}
+async function verifyWrite(id){
+  for(let i=0;i<4;i++){
+    await new Promise(r=>setTimeout(r,i===0?300:1200));
+    try{const r=await jsonp('ack',{requestId:id},13000);if(r?.ok && r.found)return true;}catch(e){}
+  }
+  return false;
+}
+async function saveAction(payload){
+  if(!app.gasUrl){app.tab='settings';alertMsg('先に設定画面へGASのURLを入力してください。','warn');render();return false;}
+  if(app.busy)return false;
+  const event={...payload,requestId:newId('req_')};
+  // 端末内の保存が使えない場合でも、Googleへの書き込みは妨げません。
+  safeStorageSet(PENDING_KEY,JSON.stringify(event));
+  return sendEvent(event);
+}
+async function sendEvent(event){
+  setBusy(true);alertMsg('Googleスプレッドシートへ送信し、保存完了を確認しています…','warn');
+  let sendError='';
+  try{
+    // Google Apps Scriptは別ドメインにリダイレクトするため、POSTはno-corsで送信。
+    // 送っただけでは成功扱いせず、下のJSONP確認で実際の保存結果をチェックします。
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),20000);
+    try{await fetch(validateUrl(app.gasUrl),{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(event),signal:ctrl.signal});}
+    finally{clearTimeout(timer);}
+  }catch(e){sendError=e?.message||'送信時に通信エラーが発生しました';}
+  const ok=await verifyWrite(event.requestId);
+  if(ok){
+    safeStorageDelete(PENDING_KEY);app.pending=null;
+    setBusy(false);
+    const refreshed=await readState(true);
+    alertMsg(refreshed?'スプレッドシートに保存できました。':'保存は確認できました。表示更新に失敗したため「再読込」を押してください。',refreshed?'good':'warn');
+    return true;
+  }
+  app.pending=event;setBusy(false);
+  alertMsg('保存を確認できませんでした。'+(sendError?'（'+sendError+'）':'')+' 設定画面の「未確認の送信を再試行」を押してください。','error');
+  return false;
+}
+async function retryPending(){if(!app.pending||app.busy)return;await sendEvent(app.pending);}
+async function saveGasUrl(e){e.preventDefault();const input=document.getElementById('gas-url');try{
+  const value=validateUrl(input.value);
+  if(app.pending && app.gasUrl && app.gasUrl!==value && !confirm('未確認の送信が残っています。別のGASへ切り替えますか？'))return;
+  app.gasUrl=value;safeStorageSet(URL_KEY,value);app.pending=null;safeStorageDelete(PENDING_KEY);app.loaded=false;
+  await readState();
+}catch(e){alertMsg(e.message,'error');}}
+function activeSupps(){return app.supplements.filter(s=>!s.deleted);}
+function countRecorded(date){const o=app.logs[date]||{};let n=0;TIMES.forEach(t=>{Object.values(o[t.id]||{}).forEach(v=>{if(Number(v)>0)n++;});});return n;}
+function dayLog(date,t,id){return Math.max(0,Number(app.logs[date]?.[t]?.[id]||0));}
+function renderRecord(){if(!app.loaded)return `<section class="card teal"><h2>服用記録</h2><div class="empty">Googleスプレッドシートに接続すると、日々の服用を記録できます。</div><button class="btn full" data-tab="settings">GASのURLを設定する</button></section>`;
+const active=activeSupps();
+let html=`<section class="card teal"><div class="date-selector"><button class="arrow" data-action="day-prev" aria-label="前日">‹</button><input class="input date" type="date" id="record-date" value="${esc(app.date)}" aria-label="記録の日付"><button class="arrow" data-action="day-next" aria-label="翌日">›</button></div><p class="small muted bold" style="text-align:center">日付を選び、服用したサプリを記録</p><div class="total">この日の服用記録：${countRecorded(app.date)}件</div></section>`;
+if(!active.length)return html+`<section class="card"><h2>サプリが未登録です</h2><p>まず名前と朝・昼・夜の目安を登録してください。</p><button class="btn full" data-tab="manage">サプリを登録する</button></section>`;
+TIMES.forEach(t=>{
+ html+=`<section class="card"><h2>${t.symbol} ${t.name}の記録</h2>`;
+ active.forEach(s=>{
+ const existing=dayLog(app.date,t.id,s.id),plan=Math.max(0,Number(s[t.id])||0);
+ html+=`<div class="pill-item"><div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">目安：${plan}粒 ${existing?'/ 記録済み：'+existing+'粒':''}</div></div><div class="row"><input aria-label="${esc(s.name)} ${t.name}の量" class="input num" type="number" min="0" max="100" step="1" id="dose-${esc(t.id)}-${esc(s.id)}" value="${existing||plan||1}"><span class="small bold">粒</span><button class="btn tiny ${existing?'recorded':''}" data-action="record" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>${existing?'変更する':'記録する'}</button>${existing?`<button class="btn tiny ghost" data-action="cancel" data-timing="${t.id}" data-id="${esc(s.id)}" ${app.busy?'disabled':''}>取消</button>`:''}</div></div>`;
+ });
+ html+='</section>';
+});return html;}
+function captureDraft(){
+ const form=document.getElementById('supp-form');if(!form)return;
+ app.draft={name:form.querySelector('#supp-name')?.value||'',morning:form.querySelector('#supp-morning')?.value||'0',afternoon:form.querySelector('#supp-afternoon')?.value||'0',evening:form.querySelector('#supp-evening')?.value||'0',aiIngredients:form.querySelector('#supp-ingredients')?.value||'',aiServing:form.querySelector('#supp-serving')?.value||'',aiSummary:form.querySelector('#supp-summary')?.value||'',aiCautions:form.querySelector('#supp-cautions')?.value||''};
+}
+function supplementDraft(s){return {name:s?.name||'',morning:s?.morning??0,afternoon:s?.afternoon??0,evening:s?.evening??0,aiIngredients:s?.aiIngredients||'',aiServing:s?.aiServing||'',aiSummary:s?.aiSummary||'',aiCautions:s?.aiCautions||''};}
+function renderManage(){if(!app.loaded)return `<section class="card"><h2>サプリ管理</h2><p>先にGASへ接続してください。</p><button class="btn" data-tab="settings">設定へ</button></section>`;
+const edit=app.editing&&app.supplements.find(s=>s.id===app.editing);const d=app.draft||supplementDraft(edit);
+let html=`<section class="card teal"><h2>📷 写真からAIで読み取る</h2><p class="small">サプリのパッケージや成分表示を撮影すると、名前・表示成分・服用目安を読み取ります。撮影した写真そのものはスプレッドシートに保存しません。</p>
+<label class="label" for="supp-photo">パッケージ写真を選択・撮影</label><input class="input" id="supp-photo" type="file" accept="image/*" aria-label="サプリのパッケージ写真" ${app.ai.analyzing?'disabled':''}>
+${app.ai.dataUrl?`<img class="photo-preview" src="${app.ai.dataUrl}" alt="分析する画像のプレビュー"><p class="small muted">選択画像：${esc(app.ai.previewName)}</p>`:''}
+<button class="btn full" data-action="analyze" ${(!app.ai.dataUrl||app.ai.analyzing||app.busy)?'disabled':''} style="margin-top:12px">${app.ai.analyzing?'<span class="spinner"></span>写真を解析中…':'✨ 写真をAI分析して自動入力'}</button>
+${app.ai.error?`<div class="notice error" role="alert" style="margin-top:11px">${esc(app.ai.error)}</div>`:''}
+${!app.aiConfigured?`<div class="notice warn" style="margin-top:11px">GASのGemini APIキーが未確認です。設定画面の案内をご覧ください。</div>`:''}
+${app.ai.result?`<div class="ai-result" aria-live="polite"><h3>🔎 AIの読み取り結果</h3><p><b>製品名：</b>${esc(app.ai.result.name||'読み取り不可')}</p><p><b>成分：</b>${esc(app.ai.result.ingredients||'読み取り不可')}</p><p><b>表示の目安：</b>${esc(app.ai.result.serving||'読み取り不可')}</p><p><b>特徴：</b>${esc(app.ai.result.summary||'情報不足')}</p><p><b>注意：</b>${esc(app.ai.result.cautions||'表示を確認してください')}</p>${app.ai.result.unreadable?`<p class="small muted">読み取りにくい箇所：${esc(app.ai.result.unreadable)}</p>`:''}<p class="small bold">↓ 下の登録フォームに反映しました。内容を確認してから保存してください。</p></div>`:''}
+<p class="small muted">※ 正確に読み取るには表面と成分・摂取目安が見える裏面を、それぞれ撮影して確認してください。AIの読み取りは誤ることがあります。</p></section>`;
+html+=`<section class="card teal"><h2>${edit?'サプリを編集':'サプリを追加'}</h2><form id="supp-form"><label class="label" for="supp-name">サプリ名</label><input class="input" id="supp-name" maxlength="100" required autocomplete="off" value="${esc(d.name)}" placeholder="例：ビタミンC"><div class="formgrid" style="margin:14px 0">${TIMES.map(t=>`<label>${t.name}（粒）<input class="input" id="supp-${t.id}" type="number" min="0" max="100" step="1" required value="${esc(d[t.id])}"></label>`).join('')}</div><p class="small muted">朝・昼・夜はラベルに時間帯の明記がある場合のみAI入力します。実際に飲む量や時間はご自身で確認してください。</p>
+<details class="details" ${(d.aiIngredients||d.aiServing||d.aiSummary||d.aiCautions)?'open':''}><summary>写真AIで読み取った成分・説明（編集できます）</summary>
+<label class="label" for="supp-ingredients">成分表示</label><textarea class="input" id="supp-ingredients" rows="2" maxlength="800">${esc(d.aiIngredients)}</textarea>
+<label class="label" for="supp-serving">ラベルの服用目安</label><textarea class="input" id="supp-serving" rows="2" maxlength="400">${esc(d.aiServing)}</textarea>
+<label class="label" for="supp-summary">成分についての説明</label><textarea class="input" id="supp-summary" rows="2" maxlength="700">${esc(d.aiSummary)}</textarea>
+<label class="label" for="supp-cautions">注意事項</label><textarea class="input" id="supp-cautions" rows="2" maxlength="700">${esc(d.aiCautions)}</textarea></details>
+<button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">${edit?'変更を保存':'サプリを登録'}</button>${edit?`<button class="btn ghost full" type="button" data-action="edit-cancel" style="margin-top:8px">編集をやめる</button>`:''}</form></section>`;
+html+=`<section class="card"><h2>登録済みサプリ（${activeSupps().length}件）</h2>`;
+if(!activeSupps().length)html+='<div class="empty">まだ登録されていません。</div>';
+activeSupps().forEach(s=>{html+=`<div class="supp-row"><div class="line between"><div class="grow"><div class="pill-name">${esc(s.name)}</div><div class="pill-info">朝 ${Number(s.morning)||0}粒 / 昼 ${Number(s.afternoon)||0}粒 / 夜 ${Number(s.evening)||0}粒</div>${s.aiIngredients?`<div class="pill-info">AI成分メモ：${esc(String(s.aiIngredients).slice(0,110))}</div>`:''}</div><button class="btn ghost tiny" data-action="edit" data-id="${esc(s.id)}">編集</button><button class="btn red tiny" data-action="delete" data-id="${esc(s.id)}">削除</button></div></div>`;});
+return html+'</section>';}
+function renderHistory(){if(!app.loaded)return `<section class="card"><h2>服用履歴</h2><p>先にGASへ接続してください。</p></section>`;
+const days=Object.keys(app.logs).filter(d=>countRecorded(d)>0).sort((a,b)=>b.localeCompare(a));
+let html=`<section class="card teal"><h2>服用履歴</h2><p class="small muted">Googleスプレッドシートにある履歴を表示しています。${app.historyRows}行を確認。</p><button class="btn ghost" data-action="refresh">Googleから再読込</button><button class="btn ghost" style="margin-left:5px" data-action="csv">CSVで保存</button></section><section class="card">`;
+if(!days.length)return html+'<div class="empty">表示できる服用履歴はまだありません。</div></section>';
+days.forEach(day=>{let lines='';TIMES.forEach(t=>{Object.entries(app.logs[day]?.[t.id]||{}).forEach(([id,amount])=>{if(Number(amount)<=0)return;let s=app.supplements.find(s=>s.id===id);lines+=`<div class="history-line"><span>${t.name}：${esc(s?.name||id)}</span><strong>${Number(amount)} 粒</strong></div>`;});});
+ html+=`<div class="history-group"><div class="line between"><span class="history-date">${esc(day)}（${countRecorded(day)}件）</span><button class="btn ghost tiny" data-action="jump" data-date="${esc(day)}">この日を開く</button></div>${lines}</div>`;
+});return html+'</section>';}
+function renderSettings(){return `<section class="card teal"><h2>Googleスプレッドシート設定</h2><p class="small"><strong>服用履歴の同期はGASのURLだけ。</strong> 同期キー・setupCloudSyncは不要です。</p><form id="gas-form"><label class="label" for="gas-url">GAS ウェブアプリ URL</label><input class="input" id="gas-url" type="url" required inputmode="url" spellcheck="false" autocomplete="url" value="${esc(app.gasUrl)}" placeholder="https://script.google.com/macros/s/.../exec"><button class="btn full" type="submit" ${app.busy?'disabled':''} style="margin-top:12px">URLを保存して接続</button></form><hr class="divider"><div class="notice ${app.loaded?'good':'warn'}"><div class="status">${app.loaded?'✅ 接続済み':'● 未接続'}</div>${app.loaded?`<p class="small">保存先：${esc(app.spreadsheet)}</p>`:''}</div><button class="btn ghost full" data-action="refresh" ${app.busy?'disabled':''}>スプレッドシートを再読込</button>${app.pending?`<div class="notice warn"><b>⚠ 保存完了を確認できていない操作が1件あります。</b><button class="btn full" data-action="retry" ${app.busy?'disabled':''} style="margin-top:9px">未確認の送信を再試行</button></div>`:''}<p class="small muted">スマホの保存データを削除してもGoogleの履歴は消えません。同じGAS URLを入れると復元できます。</p></section><section class="card"><h2>✨ 写真AIの設定</h2><div class="notice ${app.aiConfigured?'good':'warn'}">${app.aiConfigured?'✅ Gemini APIキーを確認しました（実際の解析結果は写真から確認してください）':'⚠ Gemini APIキーがまだ設定されていないか、接続確認前です。'}</div><p>写真AIだけ、GASの「プロジェクトの設定」→「スクリプト プロパティ」に <code>GEMINI_API_KEY</code> を1回登録してください。以前の設定が残っていれば再設定不要です。</p><p class="small muted">使用モデル：Gemini 3.1 Flash-Lite。API利用料が発生する場合があります。APIキーはアプリやGitHubに貼らないでください。画像は解析時のみGeminiへ送ります。</p></section><section class="card"><h2>データについて</h2><p>服用履歴・サプリ一覧・AI読み取りメモはスプレッドシートに保存します。写真そのものは保存しません。</p><p class="small muted">※ GASを「全員」に公開するとURLを知っている人が記録を変更でき、写真AIによりAPI費用が生じ得ます。共有には注意してください。</p><button class="btn ghost full" data-action="csv">服用履歴をCSVで保存</button></section>`;}
+function render(){paintNotice();document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===app.tab));
+const area=document.getElementById('content');let html='';if(app.busy)html='<div class="notice"><span class="spinner"></span>Googleと通信しています…</div>';
+html+=app.tab==='manage'?renderManage():app.tab==='history'?renderHistory():app.tab==='settings'?renderSettings():renderRecord();area.innerHTML=html;
+}
+async function recordDose(id,timing,clear){if(!app.loaded||app.busy)return;const s=app.supplements.find(x=>x.id===id);if(!s)return;
+const amount=clear?0:Number(document.getElementById('dose-'+timing+'-'+id)?.value);
+if(!Number.isInteger(amount)||amount<0||amount>100){alertMsg('粒数は0～100の整数で入力してください。','error');return;}
+await saveAction({action:'record',date:app.date,timing,suppId:s.id,suppName:s.name,amount});}
+async function saveSupplement(e){e.preventDefault();if(app.busy||!app.loaded)return;
+const name=document.getElementById('supp-name').value.trim();const amounts={};for(const t of TIMES){const n=Number(document.getElementById('supp-'+t.id).value);if(!Number.isInteger(n)||n<0||n>100){alertMsg('朝・昼・夜は0～100の整数で入力してください。','error');return;}amounts[t.id]=n;}
+if(!name){alertMsg('サプリ名を入力してください。','error');return;}
+captureDraft();
+const id=app.editing||newId('supp_');
+const aiFields={aiIngredients:document.getElementById('supp-ingredients').value.trim().slice(0,800),aiServing:document.getElementById('supp-serving').value.trim().slice(0,400),aiSummary:document.getElementById('supp-summary').value.trim().slice(0,700),aiCautions:document.getElementById('supp-cautions').value.trim().slice(0,700)};
+const done=await saveAction({action:'supplement',supplement:{id,name,...amounts,...aiFields,deleted:false}});
+if(done){app.editing=null;app.draft=null;app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};render();}}
+async function deleteSupplement(id){const s=app.supplements.find(x=>x.id===id);if(!s||app.busy)return;if(!confirm(`「${s.name}」を登録一覧から外しますか？\n服用履歴は削除されません。`))return;
+await saveAction({action:'supplement',supplement:{...s,deleted:true}});}
+async function choosePhoto(file){
+ if(!file)return;
+ captureDraft();app.ai.error='';app.ai.result=null;app.ai.dataUrl='';app.ai.previewName='';
+ if(!file.type.startsWith('image/')){app.ai.error='画像ファイルを選んでください（JPEG/PNG推奨）。';render();return;}
+ if(file.size>20*1024*1024){app.ai.error='元の写真が20MBを超えています。小さめの写真を選んでください。';render();return;}
+ try{
+  const img=await new Promise((resolve,reject)=>{const im=new Image();const url=URL.createObjectURL(file);im.onload=()=>{URL.revokeObjectURL(url);resolve(im)};im.onerror=()=>{URL.revokeObjectURL(url);reject(Error('この画像形式を開けません。JPEG/PNGで撮影してください。'))};im.src=url;});
+  const max=1400,ratio=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*ratio));c.height=Math.max(1,Math.round(img.naturalHeight*ratio));c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  let data=c.toDataURL('image/jpeg',.78);if(data.length>1000000)data=c.toDataURL('image/jpeg',.55);
+  if(data.length>1000000)throw Error('画像を縮小できませんでした。写真を撮り直してください。');
+  app.ai.dataUrl=data;app.ai.previewName=file.name;render();
+ }catch(err){app.ai.error=err.message||'画像の読み込みに失敗しました。';render();}
+}
+async function analyzePhoto(){
+ if(app.ai.analyzing||app.busy)return;
+ if(!app.ai.dataUrl){app.ai.error='先に写真を選んでください。';render();return;}
+ if(!app.gasUrl){app.tab='settings';alertMsg('先にGAS URLを設定してください。','warn');render();return;}
+ captureDraft();app.ai.analyzing=true;app.ai.error='';app.ai.result=null;render();
+ const requestId=newId('img_');
+ try{
+  const body=JSON.stringify({action:'analyzeImage',requestId,imageData:app.ai.dataUrl});
+  // doPostの応答はGoogleのリダイレクトで読めない。GET(JSONP)で解析結果を安全に取得する。
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),75000);
+  const post=fetch(validateUrl(app.gasUrl),{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body,signal:ctrl.signal}).catch(()=>null).finally(()=>clearTimeout(timer));
+  let result=null;
+  const deadline=Date.now()+90000;
+  while(Date.now()<deadline){
+   await new Promise(r=>setTimeout(r,1800));
+   try{const r=await jsonp('aiResult',{requestId},12000);
+    if(r?.ok && r.status==='done'){result=r.result;break;}
+    if(r?.status==='error'||(r?.ok===false&&r.error)){const ex=Error(r.error||'写真解析でエラーが発生しました。');ex.isAIError=true;throw ex;}
+
+   }catch(err){if(err.isAIError)throw err;/* 一時的なJSONP通信失敗は次のポーリングで再試行 */}
+  }
+  if(!result)throw Error('解析結果の受信がタイムアウトしました。電波状態やGASのデプロイ、APIキー設定をご確認ください。');
+  app.ai.result=result;
+  if(!app.draft)app.draft=supplementDraft();
+  if(result.name)app.draft.name=result.name;
+  app.draft.aiIngredients=result.ingredients||'';app.draft.aiServing=result.serving||'';app.draft.aiSummary=result.summary||'';app.draft.aiCautions=result.cautions||'';
+  for(const [field,target] of [['morning','morning'],['afternoon','afternoon'],['evening','evening']]){if(Number.isInteger(result.schedule?.[field]))app.draft[target]=result.schedule[field];}
+  alertMsg('写真を解析しました。サプリ名や服用目安を確認し、下の「サプリを登録」を押してください。','good');
+  void post;
+ }catch(err){app.ai.error=err.message||'解析できませんでした。GAS設定をご確認ください。';}
+ finally{app.ai.analyzing=false;render();}
+}
+function csvExport(){if(!app.loaded){alertMsg('まずGoogleから履歴を読み込んでください。','warn');return;}
+const rows=[['服用日','時間帯','サプリ名','数量（粒）']];Object.keys(app.logs).sort().forEach(date=>{TIMES.forEach(t=>{Object.entries(app.logs[date]?.[t.id]||{}).forEach(([id,n])=>{if(Number(n)>0){const name=app.supplements.find(s=>s.id===id)?.name||id;rows.push([date,t.name,name,n]);}});});});
+const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');const a=document.createElement('a'),u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.href=u;a.download='SupplementHistory_'+todayDate()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),20000);alertMsg('CSVを保存しました。','good');}
+function shiftDay(d){const x=new Date(app.date+'T12:00:00');x.setDate(x.getDate()+d);app.date=[x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-');render();}
+document.addEventListener('submit',async e=>{if(e.target.id==='gas-form'){await saveGasUrl(e);}if(e.target.id==='supp-form'){await saveSupplement(e);}});
+document.addEventListener('change',e=>{if(e.target.id==='supp-photo'){choosePhoto(e.target.files?.[0]);return;}if(e.target.id==='record-date'&&/^\d{4}-\d\d-\d\d$/.test(e.target.value)){app.date=e.target.value;render();}});
+document.addEventListener('click',async e=>{
+const b=e.target.closest('[data-action], [data-tab]');if(!b)return;
+if(b.dataset.tab){app.tab=b.dataset.tab;render();return;}
+const a=b.dataset.action,id=b.dataset.id,t=b.dataset.timing;
+if(a==='today'){app.date=todayDate();app.tab='record';render();}
+if(a==='day-prev')shiftDay(-1);
+if(a==='day-next')shiftDay(1);
+if(a==='record')await recordDose(id,t,false);
+if(a==='cancel')await recordDose(id,t,true);
+if(a==='edit'){app.editing=id;app.draft=supplementDraft(app.supplements.find(s=>s.id===id));app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};app.tab='manage';render();window.scrollTo({top:0,behavior:'smooth'});}
+if(a==='edit-cancel'){app.editing=null;app.draft=null;app.ai={dataUrl:'',previewName:'',analyzing:false,error:'',result:null};render();}
+if(a==='delete')await deleteSupplement(id);
+if(a==='analyze')await analyzePhoto();
+if(a==='refresh')await readState();
+if(a==='retry')await retryPending();
+if(a==='csv')csvExport();
+if(a==='jump'){app.date=b.dataset.date;app.tab='record';render();window.scrollTo({top:0,behavior:'smooth'});}
+});
+window.addEventListener('online',()=>{if(app.gasUrl&&!app.busy)readState(true);});
+try{app.pending=JSON.parse(safeStorageGet(PENDING_KEY)||'null');}catch(e){app.pending=null;}
+render();if(app.gasUrl)readState(true);else {app.tab='settings';alertMsg('最初にGASのURLを1回登録してください。','warn');render();}
+</script>
 </body>
 </html>
